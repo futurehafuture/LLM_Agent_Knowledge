@@ -22,8 +22,12 @@ updated: 2026-05-11
 
 假设两个 token A、B 的 embedding 分别是 $[1, 0]$ 和 $[0, 1]$，$W_Q=W_K=W_V=I$：
 
-- 输入 `[A, B]` → 注意力分数矩阵 = $\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix}$
-- 输入 `[B, A]` → 注意力分数矩阵 = $\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix}$
+- 输入 `[A, B]` → 注意力分数矩阵：
+
+  $$\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix}$$
+- 输入 `[B, A]` → 注意力分数矩阵：
+
+  $$\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix}$$
 
 **完全一样！** 顺序换了，每个 token 的输出向量毫无变化。这就是置换不变性。
 

@@ -311,11 +311,17 @@ Scaling Laws 在**许多不同现象**上都成立：
 
 **上方三图（来自 Kaplan 2020）：**
 
-$$L = (C_{min}/2.3 \times 10^8)^{-0.048}$$（Compute 维度）
+$$L = (C_{min}/2.3 \times 10^8)^{-0.048}$$
 
-$$L = (D/5.4 \times 10^{13})^{-0.095}$$（Dataset Size 维度）
+（Compute 维度）
 
-$$L = (N/8.8 \times 10^{13})^{-0.076}$$（Parameters 维度）
+$$L = (D/5.4 \times 10^{13})^{-0.095}$$
+
+（Dataset Size 维度）
+
+$$L = (N/8.8 \times 10^{13})^{-0.076}$$
+
+（Parameters 维度）
 
 **图表结构：**
 - 三张双对数（log-log）图，分别展示：
