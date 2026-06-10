@@ -1,6 +1,6 @@
 # Claude Code Agent 架构研读：总览
 
-> 主题来源：2026 年 Claude Code npm 包 source map 泄漏事件之后，VILA Lab/UCL 等作者基于公开 TypeScript 源码做了系统性论文分析：[1Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems2](https://arxiv.org/abs/2604.14228)。本文档不引用、不传播泄漏源码，只整理论文、官方文档和公开报道中可学习的 Agent 架构设计点。
+> 主题来源：2026 年 Claude Code npm 包 source map 泄漏事件之后，VILA Lab/UCL 等作者基于公开 TypeScript 源码做了系统性论文分析：[Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems](https://arxiv.org/abs/2604.14228)。本文档不引用、不传播泄漏源码，只整理论文、官方文档和公开报道中可学习的 Agent 架构设计点。
 
 ## 1. 为什么这篇论文重要
 
@@ -53,12 +53,12 @@ while task_not_done:
 
 ## 5. 参考资料
 
-- 论文：[1Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems2](https://arxiv.org/abs/2604.14228)
-- 论文 HTML 版：[1arXiv HTML 2604.14228v12](https://arxiv.org/html/2604.14228v1)
-- 论文项目仓库：[1VILA-Lab/Dive-into-Claude-Code2](https://github.com/VILA-Lab/Dive-into-Claude-Code)
-- Claude Code 记忆官方文档：[1How Claude remembers your project2](https://code.claude.com/docs/en/memory)
-- Claude Code 权限模式官方文档：[1Permission modes2](https://code.claude.com/docs/en/permission-modes)
-- Anthropic 工具调用文档：[1Tool use with Claude2](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview)
-- Anthropic Agent 架构文章：[1Building Effective Agents2](https://www.anthropic.com/engineering/building-effective-agents)
-- Anthropic 上下文工程文章：[1Effective context engineering for AI agents2](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
-- 泄漏事件公开报道：[1TechRadar: Anthropic confirms source leak2](https://www.techradar.com/pro/security/anthropic-confirms-it-leaked-512-000-lines-of-claude-code-source-code-spilling-some-of-its-biggest-secrets)
+- 论文：[Dive into Claude Code: The Design Space of Today's and Future AI Agent Systems](https://arxiv.org/abs/2604.14228)
+- 论文 HTML 版：[arXiv HTML 2604.14228v1](https://arxiv.org/html/2604.14228v1)
+- 论文项目仓库：[VILA-Lab/Dive-into-Claude-Code](https://github.com/VILA-Lab/Dive-into-Claude-Code)
+- Claude Code 记忆官方文档：[How Claude remembers your project](https://code.claude.com/docs/en/memory)
+- Claude Code 权限模式官方文档：[Permission modes](https://code.claude.com/docs/en/permission-modes)
+- Anthropic 工具调用文档：[Tool use with Claude](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview)
+- Anthropic Agent 架构文章：[Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+- Anthropic 上下文工程文章：[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- 泄漏事件公开报道：[TechRadar: Anthropic confirms source leak](https://www.techradar.com/pro/security/anthropic-confirms-it-leaked-512-000-lines-of-claude-code-source-code-spilling-some-of-its-biggest-secrets)
