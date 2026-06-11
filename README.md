@@ -43,7 +43,7 @@
 | 模块 | 内容 |
 |------|------|
 | **大模型架构** | MHA · GQA · MLA · RoPE · RMSNorm · SwiGLU · MoE · Qwen3 系列 |
-| **训练 & 对齐** | SFT · RLHF · PPO · DPO · GRPO · LoRA · AdamW · 混合精度 |
+| **大模型训练** | SFT · RLHF · PPO · DPO · GRPO · LoRA · AdamW · 混合精度 |
 | **Agent 系统** | Claude Code 源码级分析：Agent Loop · 上下文压缩 · MCP · 子代理 |
 | **CS 基础** | TCP · HTTP · 数据库索引 · B+树 · 操作系统 |
 | **算法** | LeetCode Hot 100（链表 · DP · 二分 · 二叉树） |
