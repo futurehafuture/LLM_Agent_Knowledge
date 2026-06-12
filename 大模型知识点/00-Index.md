@@ -1,7 +1,7 @@
 ---
 tags: [面试, 大模型, 索引]
 created: 2026-05-09
-updated: 2026-05-24
+updated: 2026-06-12
 ---
 
 # 大模型岗位面试准备 · 索引
@@ -37,23 +37,23 @@ updated: 2026-05-24
 
 > 总览见 [[训练/00-训练-总览]]
 
-### 优化器与精度
-
-- **[[02-AdamW-优化器]]** —— SGD→Momentum→RMSProp→Adam 演进；EMA 公式深入拆解（$m_t$/$v_t$ 为什么长这样、$m_0$/$v_0$ 初始化问题）；Adam 的 weight decay 与自适应 lr 耦合；AdamW 解耦方案；手撕代码 + 面试追问。
-- **[[03-BF16-FP16-FP32精度详解]]** —— 三种浮点格式的位宽/指数/尾数对比；动态范围 vs 精度权衡；混合精度训练原理；loss scaling；为什么 LLM 训练用 BF16。
-
-### 损失函数
+### 基础训练
 
 - **[[01-交叉熵损失详解]]** —— 信息论解释；CE = KL + 熵；softmax + CE 梯度推导；为什么分类不用 MSE；大模型 next-token CE；手撕代码（含数值稳定 log-sum-exp）；fp32 cast、ignore_index、shift 一位等工程细节。
+- **[[02-AdamW-优化器]]** —— SGD→Momentum→RMSProp→Adam 演进；EMA 公式深入拆解（$m_t$/$v_t$ 为什么长这样、$m_0$/$v_0$ 初始化问题）；Adam 的 weight decay 与自适应 lr 耦合；AdamW 解耦方案；手撕代码 + 面试追问。
+- **[[03-BF16-FP16-FP32精度详解]]** —— 三种浮点格式的位宽/指数/尾数对比；动态范围 vs 精度权衡；混合精度训练原理；loss scaling；为什么 LLM 训练用 BF16。
+- **[[04-Dropout和权重衰减]]** —— Dropout 训练/推理差异；Inverted Dropout；L1/L2 weight decay 原理；与 AdamW 的关系；适用场景对比。
 
 ### 微调
 
-- **[[04-LoRA微调与量化技术]]** —— LoRA 低秩分解原理；$\Delta W = AB$ 为什么能减少参数；QLoRA（4-bit+LoRA）；量化基础（GPTQ/AWQ）；PEFT 选型对比。
+- **[[05-LoRA微调与量化技术]]** —— LoRA 低秩分解原理；$\Delta W = AB$ 为什么能减少参数；QLoRA（4-bit+LoRA）；量化基础（GPTQ/AWQ）；PEFT 选型对比。
 
 ### RLHF / 对齐
 
-- **[[05-PPO-DPO-GRPO-DAPO-GSPO演进对比]]** —— RLHF 算法演进主线：PPO 经典 → DPO 砍掉 RL → GRPO 砍掉 Critic（DeepSeek-R1） → DAPO 工程改进（字节 Seed） → GSPO sequence-level ratio（Qwen3）；对照表 + 每种算法的核心痛点与修复。
-- **[[06-PPO损失函数详解]]** —— PPO 损失四部分（clip / value / entropy / KL）；ratio、advantage、returns、GAE 是什么；大模型 RLHF 里怎么算（稀疏 reward + token-level KL）；Critic MSE；伪代码完整训练循环。
+- **[[06-SFT和RL区别]]** —— 监督微调 vs 强化学习的核心区别；训练信号来源；适用场景；进入 RLHF 的概念铺垫。
+- **[[07-策略梯度-Policy-Gradient-基础]]** —— 策略梯度从零入门：MDP 框架、策略梯度定理推导、REINFORCE、Baseline 与 Advantage、Actor-Critic、GAE、到 PPO 的演化路线；全程附具体例子，适合 RL 零基础。
+- **[[08-PPO-DPO-GRPO-DAPO-GSPO演进对比]]** —— RLHF 算法演进主线：PPO 经典 → DPO 砍掉 RL → GRPO 砍掉 Critic（DeepSeek-R1） → DAPO 工程改进（字节 Seed） → GSPO sequence-level ratio（Qwen3）；对照表 + 每种算法的核心痛点与修复。
+- **[[09-PPO损失函数详解]]** —— PPO 损失四部分（clip / value / entropy / KL）；ratio、advantage、returns、GAE 是什么；大模型 RLHF 里怎么算（稀疏 reward + token-level KL）；Critic MSE；伪代码完整训练循环。
 
 ---
 
