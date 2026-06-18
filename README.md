@@ -78,11 +78,24 @@
 
 ## 🚀 使用
 
-笔记为 Obsidian Markdown 格式，支持 `[[双向链接]]`：
+笔记为 Obsidian Markdown 格式，**强烈建议使用 [Obsidian](https://obsidian.md/) 阅读**。
+
+### 为什么需要 Obsidian？
+
+- 笔记中的数学公式（`$...$` / `$$...$$`）需要 Obsidian 的 LaTeX 渲染才能正确显示
+- 课程记录（如 `CS336/`）中嵌入了大量本地图片，Obsidian 能正确解析相对路径引用
+- 笔记之间使用 `[[双向链接]]`，Obsidian 支持点击跳转和关系图谱
+
+### 快速开始
 
 ```bash
+# 1. 克隆仓库
 git clone https://github.com/futurehafuture/LLM_Agent_Knowledge.git
+
+# 2. 打开 Obsidian → "打开文件夹作为仓库" → 选择克隆下来的目录
 ```
+
+> **提示**：如果你还没有安装 Obsidian，可以在 [obsidian.md](https://obsidian.md/) 免费下载，支持 Windows / macOS / Linux。
 
 ---
 
