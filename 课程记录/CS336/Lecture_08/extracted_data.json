@@ -1,0 +1,592 @@
+[
+  {
+    "page_num": 1,
+    "text": "Lecture 8\nCS336\nTatsu H\nPA R A LLE LIS M BA SIC S",
+    "image_paths": [
+      "images/page_1_img_1.png"
+    ],
+    "page_image": "images/page_1.png"
+  },
+  {
+    "page_num": 2,
+    "text": "Outline and goals\n•\nUnderstand the systems complexities of training huge models\n•\nDifferent parallelization paradigms and why people use multiple at once\n•\nWhat large scale training runs often look like",
+    "image_paths": [
+      "images/page_2_img_1.png"
+    ],
+    "page_image": "images/page_2.png"
+  },
+  {
+    "page_num": 3,
+    "text": "Organization today:\n❖Part 1: Basics of networking for LLMs\n❖Part 2: Different forms of parallel LLM training\n❖Part 3: Scaling and training big LMs with parallelism",
+    "image_paths": [],
+    "page_image": "images/page_3.png"
+  },
+  {
+    "page_num": 4,
+    "text": "Limits to GPU-based scaling – compute \nThere are limits to single-GPU scaling. \nThe word’s fastest supercomputers have exaflops of compute",
+    "image_paths": [
+      "images/page_4_img_1.jpeg",
+      "images/page_4_img_2.png"
+    ],
+    "page_image": "images/page_4.png"
+  },
+  {
+    "page_num": 5,
+    "text": "Limits to GPU-based scaling - memory\nModels are getting really big..\nA single GPU can’t fit most of these large models!",
+    "image_paths": [
+      "images/page_5_img_1.jpeg"
+    ],
+    "page_image": "images/page_5.png"
+  },
+  {
+    "page_num": 6,
+    "text": "What do we do? Multi-GPU, multi-machine parallelism\nIntra-node parallelism \nvia high-speed interconnects\nHigh-speed inter-node parallelism\nSplit up memory and compute requirements across GPUs and machines",
+    "image_paths": [
+      "images/page_6_img_1.png"
+    ],
+    "page_image": "images/page_6.png"
+  },
+  {
+    "page_num": 7,
+    "text": "But first.. Some basics about collective communication\nAll reduce\nBroadcast\nReduce\nAll Gather\nReduce Scatter",
+    "image_paths": [
+      "images/page_7_img_1.png",
+      "images/page_7_img_2.png",
+      "images/page_7_img_3.png",
+      "images/page_7_img_4.png",
+      "images/page_7_img_5.png"
+    ],
+    "page_image": "images/page_7.png"
+  },
+  {
+    "page_num": 8,
+    "text": "Important detail – all reduce vs reduce-scatter-gather.\nReduce can be implemented as two steps: reduce-scatter and all-gather\nImportantly, in the bandwidth-limited regime, this is the best you can do",
+    "image_paths": [
+      "images/page_8_img_1.png"
+    ],
+    "page_image": "images/page_8.png"
+  },
+  {
+    "page_num": 9,
+    "text": "TPUs vs GPUs – design differences at the comm level\nTPU networking \ntoroidal mesh\nGPU networking\nAll-to-all (up to 256)",
+    "image_paths": [
+      "images/page_9_img_1.jpeg",
+      "images/page_9_img_2.jpeg"
+    ],
+    "page_image": "images/page_9.png"
+  },
+  {
+    "page_num": 10,
+    "text": "Mesh vs tree vs other \nWhy mesh? Why tree?\nPro mesh – Cheaper to operate, can be made fast (and just do tensor parallel)\nPro tree/A2A – Better for less structured communications (expert parallel)",
+    "image_paths": [
+      "images/page_10_img_1.png"
+    ],
+    "page_image": "images/page_10.png"
+  },
+  {
+    "page_num": 11,
+    "text": "But then things change.. TPU8i/t\nTPU8i networking – closer to tree-style topologies (maybe for MoEs?)\nTPU8t scale-out networking – ‘Virgo’ with switched networks",
+    "image_paths": [
+      "images/page_11_img_1.jpeg",
+      "images/page_11_img_2.jpeg"
+    ],
+    "page_image": "images/page_11.png"
+  },
+  {
+    "page_num": 12,
+    "text": "Why not connect everything?\nDomain sizes – why not connect everything?\nhttps://newsletter.semianalysis.com/p/huawei-ai-cloudmatrix-384-chinas-answer-to-nvidia-gb200-nvl72",
+    "image_paths": [
+      "images/page_12_img_1.png",
+      "images/page_12_img_2.jpeg"
+    ],
+    "page_image": "images/page_12.png"
+  },
+  {
+    "page_num": 13,
+    "text": "Part 1 recap\n❖New unit of compute – the datacenter\n❖What we want from multi-machine scaling:\n❖Linear memory scaling (max model params scales with num gpus)\n❖Linear compute scaling (model flops scale linearly with num gpus)\n❖Simple collective comms primitives",
+    "image_paths": [],
+    "page_image": "images/page_13.png"
+  },
+  {
+    "page_num": 14,
+    "text": "Part 2 – Standard LLM parallelization primitives\nHow do we parallelize LLMs? 3 important ideas\n•\nData parallelism\n• Naïve data parallel\n• ZeRO levels 1-3\n•\nModel parallelism\n• Pipeline parallel\n• Tensor parallel\n•\nActivation parallelism\n•\nSequence parallel",
+    "image_paths": [],
+    "page_image": "images/page_14.png"
+  },
+  {
+    "page_num": 15,
+    "text": "Naïve data parallelism\nStarting point – imagine we are doing naïve SGD\n𝜃𝑡+1 = 𝜃𝑡−𝜂෍\n𝑖=1\n𝐵\n∇𝑓(𝑥𝑖)\nNaive parallelism: split the elements of B sized batch across M machines. Exchange gradients to \nsynchronize\nHow does this do?\n \nCompute scaling – each GPU gets B/M examples. \n \nCommunication overhead – transmits 2x # params every batch. OK if batches are big\n \nMemory scaling – none. Every GPU needs # params at least",
+    "image_paths": [
+      "images/page_15_img_1.png"
+    ],
+    "page_image": "images/page_15.png"
+  },
+  {
+    "page_num": 16,
+    "text": "What’s wrong with naïve data parallel?\nMemory seems like it’d be a problem – we copy the model parameters to each GPU. \nLet’s take a closer look..",
+    "image_paths": [
+      "images/page_16_img_1.png"
+    ],
+    "page_image": "images/page_16.png"
+  },
+  {
+    "page_num": 17,
+    "text": "What’s wrong with naïve data parallelism?  -  Memory \nOur memory situation is actually terrible.\nDepending on our precision.. \nWe need 5 copies of weights and 16 bytes per param! \n-\n2 bytes for FP/BF 16 model parameters\n-\n2 bytes for FP/BF 16 gradients\n-\n4 bytes for FP32 master weights (the thing you accumulate into in SGD)\n-\n4 (or 2) bytes for FP32/BF16 Adam first moment estimates\n-\n4 (or 2) bytes for FP32/BF16 Adam second moment estimates\n“Optimizer state”",
+    "image_paths": [
+      "images/page_17_img_1.png"
+    ],
+    "page_image": "images/page_17.png"
+  },
+  {
+    "page_num": 18,
+    "text": "ZeRO – solving the memory overhead issue of DP\nCore idea: split up the expensive parts (state) and use the reduce-scatter equivalence.",
+    "image_paths": [
+      "images/page_18_img_1.png"
+    ],
+    "page_image": "images/page_18.png"
+  },
+  {
+    "page_num": 19,
+    "text": "ZeRO stage 1. optimizer state sharding\nHigh level idea:\n•\nSplit up the optimizer state (first + second moments) across GPUs\n•\nEveryone has the parameters + gradients \nEach worker is responsible for updating a subset of params (corresponding to their slice)",
+    "image_paths": [
+      "images/page_19_img_1.png"
+    ],
+    "page_image": "images/page_19.png"
+  },
+  {
+    "page_num": 20,
+    "text": "ZeRO stage 1. how it works\nStep 1. Everyone computes a full gradient on their subset of the batch\nStep 2. ReduceScatter the gradients – incur #params communication cost\nStep 3. Each machine updates their param using their gradient + state.\nStep 4. All Gather the parameters – incur #params communication cost",
+    "image_paths": [
+      "images/page_20_img_1.png",
+      "images/page_20_img_2.png"
+    ],
+    "page_image": "images/page_20.png"
+  },
+  {
+    "page_num": 21,
+    "text": "Comparing ZeRO stage 1 and naïve data parallel\nNaïve DDP\nZeRO stage 1\nCommunication \nprimitive\nOne all-reduce \n(gradients)\nOne reduce scatter (send \ngradients) + all gather \n(collect params)\nCommunication cost\n2* # params\n2* # params\nMemory\n(4+K) * #params\n(4+K/Ngpu) * #params\nZeRO stage 1 is free (in the bandwidth limited regime) memory wins",
+    "image_paths": [],
+    "page_image": "images/page_21.png"
+  },
+  {
+    "page_num": 22,
+    "text": "ZeRO stage 2. the simple extension to gradient sharding\nEmboldened by our success, let’s shard even more stuff\nHigh level idea\n•\nAlso keep the gradients (pink slices) sharded across the machines. \n•\nUse the same (rough) tricks as stage 1.\nComplexity – we can never instantiate a full gradient vector, but each worker must \ncompute a full gradient (since we’re data parallel)",
+    "image_paths": [
+      "images/page_22_img_1.png"
+    ],
+    "page_image": "images/page_22.png"
+  },
+  {
+    "page_num": 23,
+    "text": "ZeRO stage 2. how it works\nStep 1. Everyone incrementally goes backward on the computation graph\n \nStep 1a. After computing a layer’s gradients, immediately reduce to send this to the \nright worker\n \nStep 1b. Once gradients are not needed in the backward graph, immediately free it.\nStep 2. Each machine updates their param using their gradient + state.\nStep 3. All Gather the parameters.",
+    "image_paths": [
+      "images/page_23_img_1.png",
+      "images/page_23_img_2.png"
+    ],
+    "page_image": "images/page_23.png"
+  },
+  {
+    "page_num": 24,
+    "text": "ZeRO stage 3 (aka FSDP) shard everything \nWe’ve gotten almost everything for free so far.. lets try to solve all our memory issues\nHigh level idea\n•\nShard everything – incl parameters!\n•\nUse the same ‘incremental communication / computation’ ideas\n•\nSend and request parameters on demand while stepping through the compute graph.\nIs it possible to do this with low overhead?",
+    "image_paths": [
+      "images/page_24_img_1.png"
+    ],
+    "page_image": "images/page_24.png"
+  },
+  {
+    "page_num": 25,
+    "text": "ZeRO stage 3 (aka FSDP) how it works (baby version)\nhttps://pytorch.org/tutorials/intermediate/FSDP_tutorial.html\nCommunication cost – 2 all gather (#param), 1 reduce-scatter (#param).",
+    "image_paths": [
+      "images/page_25_img_1.png"
+    ],
+    "page_image": "images/page_25.png"
+  },
+  {
+    "page_num": 26,
+    "text": "Actual picture of how FDSP / ZeRO stage 3 works\nLet’s walk through a FSDP example to see some important ideas\nIncremental computation / communication\n•\nParameters / gradients are requested / sent and then immediately freed\nOverlapping communication and computation (𝑾𝟏𝑾𝟎+ 𝑾𝟐𝑾𝟎)𝒙= 𝒚 \n•\n The all-gathers happen all at once while forward happens, masking the comm cost.\nhttps://arxiv.org/pdf/2304.11277.pdf",
+    "image_paths": [
+      "images/page_26_img_1.jpeg"
+    ],
+    "page_image": "images/page_26.png"
+  },
+  {
+    "page_num": 27,
+    "text": "What’s the point? \nDistributed data parallel costs 2*# param communication\nWhat about ZeRO?\n•\nZero stage 1 is 2*# param – it’s free! – you might as well always do it\n•\nZero stage 2 is 2*# param – it’s (almost) free (ignoring overhead)\n•\nZero stage 3 is 3*# param – 1.5x comm cost, but that’s not bad! (ignoring latency..)\nThis is also conceptually very simple – write a FSDP block wrapper.",
+    "image_paths": [
+      "images/page_27_img_1.png"
+    ],
+    "page_image": "images/page_27.png"
+  },
+  {
+    "page_num": 28,
+    "text": "ZeRO in practice: will it fit?\nPure BF16 training (with Kahan summation), is viable and optimizer states are less \nbeefy. Let’s say BF16 for everything but the master weights – 12 bytes per param\nOn a 8X A100 80G..\nMax size (params)\nFormula for B/param\nBaseline\n6.66.. B\n12\nZero stage 1\n16 B\n5\nZero stage 2\n24.62 B\n2 (param) + (10 \n(grad+state))/8) \nZero stage 3\n53.33 B\n12/8",
+    "image_paths": [],
+    "page_image": "images/page_28.png"
+  },
+  {
+    "page_num": 29,
+    "text": "Issues remain with data parallel – compute scaling\nWith data parallel, #machines < batch size (and near this, comm overhead is high)\nAnd there’s diminishing returns to batch sizes",
+    "image_paths": [
+      "images/page_29_img_1.png"
+    ],
+    "page_image": "images/page_29.png"
+  },
+  {
+    "page_num": 30,
+    "text": "Issues remain with data parallel – models don’t fit\nZero stages 1 and 2 don’t let you scale memory\nZero stage 3 is nice in principle, but does not reduce activation memory\nBetter ways to split up the model is needed…",
+    "image_paths": [
+      "images/page_30_img_1.png"
+    ],
+    "page_image": "images/page_30.png"
+  },
+  {
+    "page_num": 31,
+    "text": "Beyond data parallel – model parallelism\nScaling up in memory (without changing batch size) with model parallelism\nWhat model parallelism is..\n• It splits up the parameters across GPUs (like zero3).. \n• But communicate activations (while zero3 sends params).\nWe cover three different types of parallelism\n1. Pipeline parallel\n2. Tensor parallel (+ Sequence parallel)\n3. Expert parallel\nThese correspond to three different ways of cutting up the model.",
+    "image_paths": [
+      "images/page_31_img_1.png"
+    ],
+    "page_image": "images/page_31.png"
+  },
+  {
+    "page_num": 32,
+    "text": "Layer-wise parallel\nLayer-wise parallel cuts up layers, assigns some subset to GPUS.\nActivations and partial gradients are passed back and forth",
+    "image_paths": [
+      "images/page_32_img_1.png"
+    ],
+    "page_image": "images/page_32.png"
+  },
+  {
+    "page_num": 33,
+    "text": "What’s wrong with layer-wise parallel\nUtilization of layer-wise parallelism is terrible.. \nWith n gpus, each gpu is active \n1\nn of the time.\nEach GPU is idling most of the time, waiting for the backward pass to propagate back",
+    "image_paths": [
+      "images/page_33_img_1.png"
+    ],
+    "page_image": "images/page_33.png"
+  },
+  {
+    "page_num": 34,
+    "text": "A solution: pipeline parallel\nSolution: Pipeline-parallel.\nProcess ‘micro-batches’ (in this case, 4). \nSend off the first microbatch and start computing the second. \nThe ratio of bubble time to useful compute is .. \n𝑛𝑠𝑡𝑎𝑔𝑒𝑠−1\n𝑛𝑚𝑖𝑐𝑟𝑜 so we need a big batch size!",
+    "image_paths": [
+      "images/page_34_img_1.png",
+      "images/page_34_img_2.jpeg"
+    ],
+    "page_image": "images/page_34.png"
+  },
+  {
+    "page_num": 35,
+    "text": "Why pipeline parallel?\nPipelines seem terrible. Why do we do it?\n1.\nPipelines save memory (compared to DDP)\n2.\nPipelines can have good communication properties (compared to FDSP) – it \ndepends only on activations (𝑏× 𝑠× ℎ) and is point to point\n \nGenerally, we will use pipelines on slower network links (i.e. inter-node) as a way to get \nbetter memory-wise scaling.",
+    "image_paths": [
+      "images/page_35_img_1.png"
+    ],
+    "page_image": "images/page_35.png"
+  },
+  {
+    "page_num": 36,
+    "text": "Pipeline performance is highly dependent on batch size\nBatch sizes are key to hiding the bubble – otherwise pipeline rapidly degrades perf",
+    "image_paths": [
+      "images/page_36_img_1.png"
+    ],
+    "page_image": "images/page_36.png"
+  },
+  {
+    "page_num": 37,
+    "text": "Trading communication bandwidth for utilization\nSome more crazy pipeline patterns can improve utilization, but at the cost of bandwidth",
+    "image_paths": [
+      "images/page_37_img_1.png"
+    ],
+    "page_image": "images/page_37.png"
+  },
+  {
+    "page_num": 38,
+    "text": "‘Zero bubble’ pipelining\nSplit up backwards into two parts\n1.\nBackpropagating activations (z,x)\n2.\nComputing weight gradients (W)\nThe second part can be done whenever",
+    "image_paths": [
+      "images/page_38_img_1.jpeg",
+      "images/page_38_img_2.png"
+    ],
+    "page_image": "images/page_38.png"
+  },
+  {
+    "page_num": 39,
+    "text": "Model parallel along the width axes\nAre there model parallel schemes with better utilization?\nWe can think of pipeline parallel as cutting up along depth. What about width?\nSimple matrix multiplication observation: decompose into submatrices, add partial sums",
+    "image_paths": [
+      "images/page_39_img_1.jpeg"
+    ],
+    "page_image": "images/page_39.png"
+  },
+  {
+    "page_num": 40,
+    "text": "Tensor parallel – GPUs have submatrices\nAssign columns (A1, A2) and rows (B1, B2) to separate GPUs. \n•\nIn the forward pass, f is the identity, and g is an all-reduce. \n•\nIn the backward pass, f is an all-reduce, g is the identity.",
+    "image_paths": [
+      "images/page_40_img_1.jpeg"
+    ],
+    "page_image": "images/page_40.png"
+  },
+  {
+    "page_num": 41,
+    "text": "Row vs Column tensor parallel\nHow do we split up in tensor parallel across a transformer block?\n•\nColumnwise – QKV, up-projection\n•\nRowwise – Attention output, down-projection\n•\nReplicated – norms, routers, etc",
+    "image_paths": [
+      "images/page_41_img_1.jpeg"
+    ],
+    "page_image": "images/page_41.png"
+  },
+  {
+    "page_num": 42,
+    "text": "When do we tensor parallel?\nOn GPUs, tensor parallel within a node (up to 8 GPUs) due to high speed interconnects.",
+    "image_paths": [
+      "images/page_42_img_1.png"
+    ],
+    "page_image": "images/page_42.png"
+  },
+  {
+    "page_num": 43,
+    "text": "Tensor parallel – pros and cons vs pipeline parallel\nHow do things compare to pipeline parallel?\n \nPros – no bubble. If your network is fast enough, there’s no waiting for others.\n \n         – low complexity – simple to ‘wrap’ models without major infra changes\n \n         – doesn’t need large batch sizes to work well\n \nCons – much larger communication than pipeline parallel.\n•\nPipeline: 𝑏𝑠ℎ point-to-point communication per microbatch\n•\nTensor: 8𝑏𝑠ℎ\n𝑛𝑑𝑒𝑣𝑖𝑐𝑒𝑠−1\n𝑛𝑑𝑒𝑣𝑖𝑐𝑒𝑠\n per layer and all-reduce communication.\nUse tensor parallel whenever we have low-latency, high-bandwidth interconnects",
+    "image_paths": [
+      "images/page_43_img_1.png"
+    ],
+    "page_image": "images/page_43.png"
+  },
+  {
+    "page_num": 44,
+    "text": "A final complexity – memory is dynamic!\nMemory isn’t just the static bits, but also activations! This can be big",
+    "image_paths": [
+      "images/page_44_img_1.jpeg"
+    ],
+    "page_image": "images/page_44.png"
+  },
+  {
+    "page_num": 45,
+    "text": "A final complexity – activation memory\nThus far, we have only really discussed parameter memory. \nTensor and pipeline parallel can linearly reduce those..but what about activations?\n[Korthikanti et al 2022]",
+    "image_paths": [
+      "images/page_45_img_1.png"
+    ],
+    "page_image": "images/page_45.png"
+  },
+  {
+    "page_num": 46,
+    "text": "What’s the activation memory per layer?\nStarting point: activation memory needed if storing everything\n•\nThe 5\n𝑎𝑠\nℎ terms come from the quadratic attention terms incl dropout\n•\nAs with flash attention, we can drop this term via recomputation",
+    "image_paths": [
+      "images/page_46_img_1.png",
+      "images/page_46_img_2.png",
+      "images/page_46_img_3.png"
+    ],
+    "page_image": "images/page_46.png"
+  },
+  {
+    "page_num": 47,
+    "text": "Activation under tensor parallel\nTensor parallel splits out the matrix multiplies in attention + MLP\nThe remaining 10 term is for the LayerNorm (4sbh), Dropout (2sbh), and inputs to the \nattention and MLP (4sbh). These terms alone will continue to grow with size",
+    "image_paths": [
+      "images/page_47_img_1.png",
+      "images/page_47_img_2.png"
+    ],
+    "page_image": "images/page_47.png"
+  },
+  {
+    "page_num": 48,
+    "text": "Making memory truly linear – sequence parallel\nObservation: all the 10sbh terms are pointwise ops over the sequence\n \n… so split up the layer norm/dropout layers along the sequence axis. \n•\nIn the forward pass, ‘𝑔’ is an all gather, ‘ ത𝑔’ is reduce-scatter\n•\nIn the backward pass, the two are reversed.",
+    "image_paths": [
+      "images/page_48_img_1.jpeg"
+    ],
+    "page_image": "images/page_48.png"
+  },
+  {
+    "page_num": 49,
+    "text": "Making activation memory fully scale with more machines\nPutting it together to get full linear scaling for memory.",
+    "image_paths": [
+      "images/page_49_img_1.png"
+    ],
+    "page_image": "images/page_49.png"
+  },
+  {
+    "page_num": 50,
+    "text": "Expert parallelism\nInstead of splitting up the matmul, split up the experts and route activations",
+    "image_paths": [
+      "images/page_50_img_1.png"
+    ],
+    "page_image": "images/page_50.png"
+  },
+  {
+    "page_num": 51,
+    "text": "Why EP?\nEP is roughly like TP in behavior for MLPs – high bandwidth, reduces activation\nBut, splitting matmuls can reduce efficiency vs routing activations",
+    "image_paths": [
+      "images/page_51_img_1.png"
+    ],
+    "page_image": "images/page_51.png"
+  },
+  {
+    "page_num": 52,
+    "text": "Complexity – combining EP and others\nNaively – we can compose EP and all other strategies.. \nBut there are important notes – DP usually shares replicas with EP splits (so EP<DP)\n DP and TP can interact badly to lower utilization",
+    "image_paths": [
+      "images/page_52_img_1.png"
+    ],
+    "page_image": "images/page_52.png"
+  },
+  {
+    "page_num": 53,
+    "text": "Complexity: Decoupling attention / expert parallelism\nRecall: MoEs apply to the MLPs, not the attention (with some exotic exceptions)\nThis can lead to some imbalance between attention and MLPs for parallelism\n•\nHigh TP – useful for attention parallelization (since we cant use EP)\n•\nLow TP – useful for MLP parallelization (we’d rather EP than TP)\nWhat to do? More flexible parallelism strategies (i.e. in Megatron)\nhttps://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/moe.html\nSeparates out TP/CP/DP (for attention) and (ETP/EP/EDP) for MLPs",
+    "image_paths": [
+      "images/page_53_img_1.png"
+    ],
+    "page_image": "images/page_53.png"
+  },
+  {
+    "page_num": 54,
+    "text": "Other parallelism strategies\nContext parallel / Ring attention (split activations across GPUs in a long sequence)",
+    "image_paths": [
+      "images/page_54_img_1.png"
+    ],
+    "page_image": "images/page_54.png"
+  },
+  {
+    "page_num": 55,
+    "text": "Recap: LLM parallelism table\nMethod\nComm/Sync\nParam memory \nper rank\nActivation / KV \nmemory per rank\nMain bandwidth \ncost\nScales global \nbatch?\nEasy to use?\nDDP / ZeRO-1\ngradient all-reduce \nper step\nNo param scaling \n(ZeRO-1 only opt \nstate)\nNone\nGradient traffic ~ \nO(params)\nYes, linear in DP\nVery\nFSDP / ZeRO-3\nGradient all reduce \n– can be overlapped\n~1/DP for \nparams/grads/opti\nmizer state\nNone\nParam traffic ~ \nO(params), higher \nthan DDP, overlap\nYes, linear in DP\nModerate\nPipeline parallel\nActivation between \nlayers, pipeline \nbubbles\n~1/PP\nDepends on \npipeline buffers\nActivation traffic \nbetween stages\nNo, but needs \nmicrobatches\nHard\nTensor parallel\nBlocking \nactivation \ncommunication\n~1/TP for TP-\nsharded weights\n~1/TP for relevant \nmatmul activations \nw/ SP\nActivation-sized \ncollectives every \nblock\nNo\nHard\nSequence / \nContext parallel\nper-layer sequence-\nshard exchange\nNone\n~1/SP or 1/CP on \nsequence-side \nactivations / KV\nActivation / KV \ncommunication\nNo\nHard\nExpert parallel \n(MoE)\ntoken dispatch -\nall-to-all per MoE\n~1/EP for expert \nweights only\nNone\nToken-routing all-\nto-all\nNo, but needs \nenough tokens per \nexpert\nHard",
+    "image_paths": [],
+    "page_image": "images/page_55.png"
+  },
+  {
+    "page_num": 56,
+    "text": "Model vs Tensor parallel (TPU book)\nKey quantity\nGlobal batch size (divided by GPU)",
+    "image_paths": [
+      "images/page_56_img_1.png",
+      "images/page_56_img_2.png"
+    ],
+    "page_image": "images/page_56.png"
+  },
+  {
+    "page_num": 57,
+    "text": "‘3D (4D) parallelism’ – putting it all together\nSimple rules of thumb from the literature.\n1. Until your model fits in memory..\n•\nTensor / expert parallel up to GPUs / machine\n•\nPipeline parallel across machines\n›\n(Or use Zero-3, depending on BW)\n2. Then until you run out of GPUs\n•\nScale the rest of the way with data parallel\nIf your batch size is small.. gradient accumulate to trade higher \nbatch sizes for better communication efficiency.",
+    "image_paths": [
+      "images/page_57_img_1.jpeg"
+    ],
+    "page_image": "images/page_57.png"
+  },
+  {
+    "page_num": 58,
+    "text": "Example from Metagron’s current recommendations\nThe “basics”\nPlus more advanced “extras”\nhttps://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/moe.html",
+    "image_paths": [
+      "images/page_58_img_1.png",
+      "images/page_58_img_2.png"
+    ],
+    "page_image": "images/page_58.png"
+  },
+  {
+    "page_num": 59,
+    "text": "Scaling strategies from Narayanan 2021\nNotes\n-\nTensor parallel first up to 8, then caps out at 8. \n-\nPipeline parallel goes up to make the model fit. \n-\nDara parallel gradually decreases with scale, with the largest model having DP=6\n32\n32\n32\n32\n32\n32\n24\n15\n9\n6\nDP size",
+    "image_paths": [
+      "images/page_59_img_1.png",
+      "images/page_59_img_2.jpeg"
+    ],
+    "page_image": "images/page_59.png"
+  },
+  {
+    "page_num": 60,
+    "text": "Careful ‘3D’ parallelism gives linear gains\nMore GPUS, same, flat utilization!",
+    "image_paths": [
+      "images/page_60_img_1.png"
+    ],
+    "page_image": "images/page_60.png"
+  },
+  {
+    "page_num": 61,
+    "text": "Tensor parallel = 8 is often optimal\nWhen parallelizing across 64 machines – it’s best to use a 8 x 8 configuration.",
+    "image_paths": [
+      "images/page_61_img_1.png"
+    ],
+    "page_image": "images/page_61.png"
+  },
+  {
+    "page_num": 62,
+    "text": "Activation recomputation can pay for itself (via memory)\nActivation recomputation enables larger batches, improving throughput (t=8, p=16)",
+    "image_paths": [
+      "images/page_62_img_1.png"
+    ],
+    "page_image": "images/page_62.png"
+  },
+  {
+    "page_num": 63,
+    "text": "Recent LMs – what do they do?\nDolma – 7B model, FDSP (probably fits intra-node)",
+    "image_paths": [
+      "images/page_63_img_1.jpeg"
+    ],
+    "page_image": "images/page_63.png"
+  },
+  {
+    "page_num": 64,
+    "text": "DeepSeek\nDeepSeek – ZeRO stage 1 with Tensor, Sequence, and Pipeline parallel\nV3 – PP (16), EP (64-way, 8 nodes), ZeRO stage 1\n \nEP uses 1F1B A2A Overlap",
+    "image_paths": [
+      "images/page_64_img_1.jpeg"
+    ],
+    "page_image": "images/page_64.png"
+  },
+  {
+    "page_num": 65,
+    "text": "Yi \nYi - ZeRO stage 1 + Tensor + Pipeline parallel\nYi-lightning (2025) – Tensor replaced by Expert parallelism",
+    "image_paths": [
+      "images/page_65_img_1.jpeg"
+    ],
+    "page_image": "images/page_65.png"
+  },
+  {
+    "page_num": 66,
+    "text": "Llama3 405B\n(Stage 1, small bsz training, Stage 2 pretraining, Stage 3 long-context)",
+    "image_paths": [
+      "images/page_66_img_1.png",
+      "images/page_66_img_2.png"
+    ],
+    "page_image": "images/page_66.png"
+  },
+  {
+    "page_num": 67,
+    "text": "Llama 3 405B\nSide note – Lots of GPU failures at this scale!",
+    "image_paths": [
+      "images/page_67_img_1.png"
+    ],
+    "page_image": "images/page_67.png"
+  },
+  {
+    "page_num": 68,
+    "text": "Gemma 2\nFor 2, 9, 27B models\nZeRO-3, MP (=TP+SP), DP",
+    "image_paths": [
+      "images/page_68_img_1.png"
+    ],
+    "page_image": "images/page_68.png"
+  },
+  {
+    "page_num": 69,
+    "text": "Mixtral 8x22B\nFrom megatron docs – \nTP / PP / CP / EP (4/4/1/8) – DP likely 2 (to add up to 256GPUs)",
+    "image_paths": [
+      "images/page_69_img_1.png"
+    ],
+    "page_image": "images/page_69.png"
+  },
+  {
+    "page_num": 70,
+    "text": "Nemotron 3 Super 120B-A12B\nFrom the long-context extension section\nTP / PP / CP / EP (2/0/64/64)",
+    "image_paths": [
+      "images/page_70_img_1.png"
+    ],
+    "page_image": "images/page_70.png"
+  },
+  {
+    "page_num": 71,
+    "text": "Qwen 3\n225B-A22B and 30B-A3B\nPrimarily expert parallel up to 8 GPUs, 2/8/32 parallelism for larger models",
+    "image_paths": [
+      "images/page_71_img_1.png",
+      "images/page_71_img_2.png"
+    ],
+    "page_image": "images/page_71.png"
+  },
+  {
+    "page_num": 72,
+    "text": "Overview table of model parallelism\nDP\nTP/SP\nEP\nPP\nCP\nDeepseek\n?? (Zero1)\n1\n8\n16\n??\nDeepseek v3\n?? (Zero1)\n1\n64\n16\n??\nYi\n?? (Zero1)\n>0\n1\n>0\n??\nLlama3 405B\n128\n8\n0\n16\n1\nGemma 2\n768\n8\n0\n0\n0\nMixtral 8x22 \n(megatron)\n2\n4\n8\n4\n1\nNemotron 3 \n120B (long \ncontext)\n??\n2\n64\n??\n64\nQwen 3 \n(megatron)\n??\n2\n32\n8\n1\nPatterns – TP generally <= 8. EP can be big (but hard!). Long context phases use large CP",
+    "image_paths": [],
+    "page_image": "images/page_72.png"
+  },
+  {
+    "page_num": 73,
+    "text": "Recap for the whole lecture\n❖\nScaling beyond a certain point requires multi-gpu, multi-node parallelism \n❖\nNo single solution to the parallelism problem (probably want all 3 approaches)\n❖\nSimple, interpretable rules of thumb for combining different forms of parallelism",
+    "image_paths": [
+      "images/page_73_img_1.png"
+    ],
+    "page_image": "images/page_73.png"
+  }
+]
