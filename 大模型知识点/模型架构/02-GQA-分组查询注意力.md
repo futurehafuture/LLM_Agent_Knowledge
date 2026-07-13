@@ -6,7 +6,7 @@ tags:
   - GQA
   - KV Cache
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-07-13
 ---
 
 # GQA：分组查询注意力
@@ -48,15 +48,15 @@ Step 3: 算 Q₃, K₃, V₃；Q₃ 和 [K₁, K₂, K₃] 做 Attention → ...
 
 每层的 KV Cache 大小：
 
-$$
+```math
 2 \times \text{batch} \times h \times T \times d_k
-$$
+```
 
 一个例子：LLaMA-7B，32 层，32 头，$d_k=128$，序列长度 2048，batch=1：
 
-$$
+```math
 2 \times 32 \times 32 \times 2048 \times 128 \times 2\text{ bytes (FP16)} \approx 1\text{ GB}
-$$
+```
 
 **序列越长，KV Cache 越大。** 这就是 MQA/GQA 要解决的问题。
 
