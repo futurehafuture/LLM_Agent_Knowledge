@@ -5,7 +5,7 @@ tags:
   - 位置编码
   - RoPE
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-07-13
 ---
 
 # RoPE：旋转位置编码
@@ -24,10 +24,21 @@ updated: 2026-05-11
 
 - 输入 `[A, B]` → 注意力分数矩阵：
 
-  $$\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix}$$
+  ```math
+  \begin{bmatrix}
+  1 & 0 \\
+  0 & 1
+  \end{bmatrix}
+  ```
+
 - 输入 `[B, A]` → 注意力分数矩阵：
 
-  $$\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix}$$
+  ```math
+  \begin{bmatrix}
+  1 & 0 \\
+  0 & 1
+  \end{bmatrix}
+  ```
 
 **完全一样！** 顺序换了，每个 token 的输出向量毫无变化。这就是置换不变性。
 
@@ -41,12 +52,12 @@ updated: 2026-05-11
 
 Transformer 论文最早使用的方案——给每个位置生成一个固定的向量，直接加到词嵌入上：
 
-$$
+```math
 \begin{cases}
 PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right) \\
 PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)
 \end{cases}
-$$
+```
 
 - $pos$：token 在序列中的位置
 - $i$：维度索引（0 到 $d/2-1$）
@@ -73,9 +84,9 @@ $$
 
 我们希望设计一种编码，使得 Attention 分数**天然地只依赖相对位置**：
 
-$$
+```math
 \text{Attention}(Q_m, K_n) = f(Q, K, m-n)
-$$
+```
 
 也就是说，经过编码后的 $Q_m$（位置 m 的查询）和 $K_n$（位置 n 的键）做内积时，结果只和它们的相对距离 $(m-n)$ 有关。
 
@@ -90,31 +101,31 @@ $$
 
 旋转矩阵：
 
-$$
+```math
 R(\theta) = \begin{bmatrix}
 \cos\theta & -\sin\theta \\
 \sin\theta & \cos\theta
 \end{bmatrix}
-$$
+```
 
 编码后的 Q 和 K：
 
-$$
+```math
 Q'_m = R(m\theta) \cdot Q_m,\quad K'_n = R(n\theta) \cdot K_n
-$$
+```
 
 ### 2.3 为什么旋转可以实现"只依赖相对位置"？
 
 计算编码后的内积：
 
-$$
+```math
 \begin{aligned}
 Q'_m \cdot K'_n &= (R(m\theta) Q_m)^T \cdot (R(n\theta) K_n) \\
                &= Q_m^T R(m\theta)^T R(n\theta) K_n \\
                &= Q_m^T R(-m\theta) R(n\theta) K_n \quad \text{（旋转矩阵的转置 = 反向旋转）} \\
                &= Q_m^T R((n-m)\theta) K_n \quad \text{（旋转可叠加）}
 \end{aligned}
-$$
+```
 
 **只依赖 $(n-m)$！** 这就是 RoPE 的数学核心。
 
@@ -128,7 +139,7 @@ $$
 
 一个 $d$ 维向量无法直接做 2D 旋转。但可以把 $d$ 维拆成 $d/2$ 对，每一对在各自的 2D 平面内独立旋转。
 
-$$
+```math
 R_{\Theta,m}^d = \begin{bmatrix}
 \cos m\theta_1 & -\sin m\theta_1 & 0 & 0 & \cdots \\
 \sin m\theta_1 & \cos m\theta_1 & 0 & 0 & \cdots \\
@@ -136,7 +147,7 @@ R_{\Theta,m}^d = \begin{bmatrix}
 0 & 0 & \sin m\theta_2 & \cos m\theta_2 & \cdots \\
 \vdots & \vdots & \vdots & \vdots & \ddots
 \end{bmatrix}
-$$
+```
 
 这是一个**分块对角矩阵**，沿对角线排列 $d/2$ 个 $2 \times 2$ 的旋转块。
 
@@ -144,9 +155,9 @@ $$
 
 每一对使用不同的旋转频率 $\theta_i$：
 
-$$
+```math
 \theta_i = \frac{1}{\text{base}^{2i/d}},\quad i = 0, 1, \dots, d/2-1
-$$
+```
 
 | 维度索引 $i$ | 频率 $\theta_i$ | 效果 |
 |---|---|---|
