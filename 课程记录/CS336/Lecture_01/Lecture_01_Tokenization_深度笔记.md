@@ -101,7 +101,9 @@ Rich Sutton 在2019年提出的"苦涩的教训"经常被误解：
 
 核心公式：
 
-$$\text{accuracy} = \text{efficiency} \times \text{resources}$$
+```math
+\text{accuracy} = \text{efficiency} \times \text{resources}
+```
 
 实际上，在更大规模下，**效率更加重要**——因为无法承担浪费。
 

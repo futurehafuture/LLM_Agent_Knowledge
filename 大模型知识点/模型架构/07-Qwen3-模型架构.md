@@ -102,9 +102,9 @@ Qwen3 是 **Decoder-only 因果语言模型**，无 Encoder，无交叉注意力
 
 ### 4.1 RMSNorm（Root Mean Square Layer Norm）
 
-$$
+```math
 \text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon}} \cdot \gamma
-$$
+```
 
 - 只做**尺度归一化**，去掉了 LayerNorm 的减均值步骤，计算量更小
 - Qwen3 用 **Pre-Norm** 结构（先 Norm 再过子层），深层网络训练更稳
@@ -132,15 +132,15 @@ $$
 
 RoPE 不把位置加到 Embedding，而是在每层注意力中对 Q、K 施加旋转矩阵：
 
-$$
+```math
 \text{Attn}(q_m, k_n) = (R_m q_m)^T (R_n k_n) = q_m^T R_{n-m} k_n
-$$
+```
 
-只有**相对位置 (n-m)** 参与注意力计算。对第 $i$ 维，旋转角度为：
+只有**相对位置 (n-m)** 参与注意力计算。对第 $`i`$ 维，旋转角度为：
 
-$$
+```math
 \theta_i = \text{base}^{-2i/d}
-$$
+```
 
 **Qwen3 的 RoPE base 大幅提升（ABF 技术）**：
 
@@ -182,12 +182,12 @@ QK-Norm 直接归一化每个头的 Q/K 向量尺度，从根源防止 logit 爆
 
 ### 4.5 SwiGLU FFN
 
-$$
+```math
 \text{FFN}(x) = \text{down\_proj}\bigl(\text{SiLU}(\text{gate\_proj}(x)) \odot \text{up\_proj}(x)\bigr)
-$$
+```
 
 - gate 和 up 两条支路，逐元素相乘后过 down 投影
-- SiLU 激活：$\text{SiLU}(x) = x \cdot \sigma(x)$，平滑无死区
+- SiLU 激活：$`\text{SiLU}(x) = x \cdot \sigma(x)`$，平滑无死区
 - 相比标准 FFN 多一个 gate\_proj，表达能力更强
 
 ---
@@ -268,15 +268,15 @@ Qwen3 去掉的理由：
 
 ![[qwen3-lb-formula.jpg]]
 
-$$
+```math
 L_{\text{aux}} = N_e \cdot \sum_{i=1}^{N_e} f_i \cdot P_i
-$$
+```
 
-- $N_e = 128$：专家总数
-- $f_i$：专家 $i$ 在**整个 global batch** 中被选中的 token 比例
-- $P_i$：路由器给专家 $i$ 的平均概率
+- $`N_e = 128`$：专家总数
+- $`f_i`$：专家 $`i`$ 在**整个 global batch** 中被选中的 token 比例
+- $`P_i`$：路由器给专家 $`i`$ 的平均概率
 
-**"Global-batch"的关键**：$f_i$ 在整个 global batch（多机多 GPU 所有 token）上统计，而非 per-sample 或 per-GPU：
+**"Global-batch"的关键**：$`f_i`$ 在整个 global batch（多机多 GPU 所有 token）上统计，而非 per-sample 或 per-GPU：
 - 统计量更稳定（样本数更多，方差更小）
 - 避免单 GPU 样本分布偏斜导致虚假"均衡"
 - 让专家在整体数据分布上真正特化

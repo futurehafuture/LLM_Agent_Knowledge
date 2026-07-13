@@ -16,10 +16,10 @@ updated: 2026-06-12
 
 ### 通用架构
 
-- **[[01-MHA-多头注意力]]** —— Self-Attention 本质（Q/K/V 数据库类比）；为什么多头；完整计算流程；$\sqrt{d_k}$ 缩放原理；PyTorch 手撕；KV Cache 引出动机。
+- **[[01-MHA-多头注意力]]** —— Self-Attention 本质（Q/K/V 数据库类比）；为什么多头；完整计算流程；$`\sqrt{d_k}`$ 缩放原理；PyTorch 手撕；KV Cache 引出动机。
 - **[[02-GQA-分组查询注意力]]** —— MHA→MQA→GQA 演进；KV Cache 推理瓶颈；三种机制参数/Cache/性能对比；分组逻辑与实现；各模型方案选型。
 - **[[03-MLA-多头潜在注意力]]** —— DeepSeek-V2/V3 用的注意力；低秩压缩 K/V；吸收矩阵 trick；RoPE 解耦设计；KV Cache 比 GQA 还小，性能不降反升。
-- **[[04-RoPE-旋转位置编码]]** —— Attention 置换不变性；Sinusoidal PE→RoPE 演进；2D 旋转矩阵推导（$R(a)^T R(b)=R(b-a)$）；高维分组旋转；base 频率与长文本外推；代码实现。
+- **[[04-RoPE-旋转位置编码]]** —— Attention 置换不变性；Sinusoidal PE→RoPE 演进；2D 旋转矩阵推导（$`R(a)^T R(b)=R(b-a)`$）；高维分组旋转；base 频率与长文本外推；代码实现。
 - **[[05-位置编码全景]]** —— Sinusoidal / Learned / Transformer-XL / T5 RB / ALiBi / RoPE / RoPE+PI/NTK/YaRN/DCA 完整演进；面试"位置编码有哪些"的标准答案。
 - **[[06-ViT与多模态位置编码]]** —— ViT 1D PE；二维位置编码；Swin 相对位置 bias；RoPE 2D；MRoPE / Interleaved MRoPE（Qwen2-VL / Qwen3-VL）；动态分辨率与视频时序对齐。
 
@@ -40,13 +40,13 @@ updated: 2026-06-12
 ### 基础训练
 
 - **[[01-交叉熵损失详解]]** —— 信息论解释；CE = KL + 熵；softmax + CE 梯度推导；为什么分类不用 MSE；大模型 next-token CE；手撕代码（含数值稳定 log-sum-exp）；fp32 cast、ignore_index、shift 一位等工程细节。
-- **[[02-AdamW-优化器]]** —— SGD→Momentum→RMSProp→Adam 演进；EMA 公式深入拆解（$m_t$/$v_t$ 为什么长这样、$m_0$/$v_0$ 初始化问题）；Adam 的 weight decay 与自适应 lr 耦合；AdamW 解耦方案；手撕代码 + 面试追问。
+- **[[02-AdamW-优化器]]** —— SGD→Momentum→RMSProp→Adam 演进；EMA 公式深入拆解（$`m_t`$/$`v_t`$ 为什么长这样、$`m_0`$/$`v_0`$ 初始化问题）；Adam 的 weight decay 与自适应 lr 耦合；AdamW 解耦方案；手撕代码 + 面试追问。
 - **[[03-BF16-FP16-FP32精度详解]]** —— 三种浮点格式的位宽/指数/尾数对比；动态范围 vs 精度权衡；混合精度训练原理；loss scaling；为什么 LLM 训练用 BF16。
 - **[[04-Dropout和权重衰减]]** —— Dropout 训练/推理差异；Inverted Dropout；L1/L2 weight decay 原理；与 AdamW 的关系；适用场景对比。
 
 ### 微调
 
-- **[[05-LoRA微调与量化技术]]** —— LoRA 低秩分解原理；$\Delta W = AB$ 为什么能减少参数；QLoRA（4-bit+LoRA）；量化基础（GPTQ/AWQ）；PEFT 选型对比。
+- **[[05-LoRA微调与量化技术]]** —— LoRA 低秩分解原理；$`\Delta W = AB`$ 为什么能减少参数；QLoRA（4-bit+LoRA）；量化基础（GPTQ/AWQ）；PEFT 选型对比。
 
 ### RLHF / 对齐
 

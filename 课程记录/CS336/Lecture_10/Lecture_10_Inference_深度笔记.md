@@ -50,35 +50,41 @@
 ### 1. 矩阵乘法的算术强度推导
 算术强度（Arithmetic Intensity）的定义为：**硬件执行的浮点运算数 (FLOPs) 与从外部存储（如 HBM 显存）传输的字节数 (Bytes) 之比**。
 
-我们以矩阵乘法 $Y = X \cdot W$ 为例，其中激活值 $X \in \mathbb{R}^{B \times D}$，权重矩阵 $W \in \mathbb{R}^{D \times F}$。在混合精度（BF16/FP16，每个数值占 2 字节）下进行计算：
-1. 从 HBM 读取激活值 $X$：$2 \cdot B \cdot D$ 字节。
-2. 从 HBM 读取权重 $W$：$2 \cdot D \cdot F$ 字节。
-3. 执行矩阵乘法（一次乘加算 2 FLOPs）：$2 \cdot B \cdot D \cdot F$ FLOPs。
-4. 将结果 $Y \in \mathbb{R}^{B \times F}$ 写回 HBM：$2 \cdot B \cdot F$ 字节。
+我们以矩阵乘法 $`Y = X \cdot W`$ 为例，其中激活值 $`X \in \mathbb{R}^{B \times D}`$，权重矩阵 $`W \in \mathbb{R}^{D \times F}`$。在混合精度（BF16/FP16，每个数值占 2 字节）下进行计算：
+1. 从 HBM 读取激活值 $`X`$：$`2 \cdot B \cdot D`$ 字节。
+2. 从 HBM 读取权重 $`W`$：$`2 \cdot D \cdot F`$ 字节。
+3. 执行矩阵乘法（一次乘加算 2 FLOPs）：$`2 \cdot B \cdot D \cdot F`$ FLOPs。
+4. 将结果 $`Y \in \mathbb{R}^{B \times F}`$ 写回 HBM：$`2 \cdot B \cdot F`$ 字节。
 
-$$\text{Arithmetic Intensity} = \frac{2 B D F}{2 B D + 2 D F + 2 B F} = \frac{B D F}{B D + D F + B F}$$
-假设模型隐藏维度 $D$ 和前馈维度 $F$ 远远大于 Batch Size $B$（即 $B \ll D, F$），我们取极限：
-$$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
-- **核心结论**：矩阵乘法的计算算术强度**本质上等于 Batch Size $B$**。
+```math
+\text{Arithmetic Intensity} = \frac{2 B D F}{2 B D + 2 D F + 2 B F} = \frac{B D F}{B D + D F + B F}
+```
+假设模型隐藏维度 $`D`$ 和前馈维度 $`F`$ 远远大于 Batch Size $`B`$（即 $`B \ll D, F`$），我们取极限：
+```math
+\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B
+```
+- **核心结论**：矩阵乘法的计算算术强度**本质上等于 Batch Size $`B`$**。
 
 ---
 
 ### 2. 硬件瓶颈分水岭：Roofline 模型
 我们以 NVIDIA H100 GPU 为例：
-- 半精度计算性能：$\text{Peak FLOPs} = 989 \times 10^{12} \text{ FLOP/s}$ (989 TFLOPs)。
-- 显存带宽：$\text{Memory Bandwidth} = 3.35 \times 10^{12} \text{ Bytes/s}$ (3.35 TB/s)。
+- 半精度计算性能：$`\text{Peak FLOPs} = 989 \times 10^{12} \text{ FLOP/s}`$ (989 TFLOPs)。
+- 显存带宽：$`\text{Memory Bandwidth} = 3.35 \times 10^{12} \text{ Bytes/s}`$ (3.35 TB/s)。
 - **硬件临界算术强度 (Accelerator Intensity)**：
-  $$\text{Threshold} = \frac{\text{Peak FLOPs}}{\text{Memory Bandwidth}} = \frac{989 \text{ TFLOPs}}{3.35 \text{ TB/s}} \approx 295 \text{ FLOP/Byte}$$
+  ```math
+  \text{Threshold} = \frac{\text{Peak FLOPs}}{\text{Memory Bandwidth}} = \frac{989 \text{ TFLOPs}}{3.35 \text{ TB/s}} \approx 295 \text{ FLOP/Byte}
+  ```
 - **判定法则**：
-  - 如果计算的算术强度 $> 295$：属于 **计算受限 (Compute-bound)**，GPU 的 Tensor Core 全速运转，效率极高。
-  - 如果计算的算术强度 $< 295$：属于 **内存受限 (Memory-bound)**，计算单元大部分时间在闲置等待数据从显存搬运过来。
-  - 由于矩阵乘法的算术强度约等于 $B$，这意味着：**只有当并发 Batch Size $B > 295$ 时，模型计算才能进入计算受限的黄金区间；而单用户推理（$B = 1$）是极端的内存受限任务，算术强度仅为 1，GPU 的算力被极度浪费。**
+  - 如果计算的算术强度 $`> 295`$：属于 **计算受限 (Compute-bound)**，GPU 的 Tensor Core 全速运转，效率极高。
+  - 如果计算的算术强度 $`< 295`$：属于 **内存受限 (Memory-bound)**，计算单元大部分时间在闲置等待数据从显存搬运过来。
+  - 由于矩阵乘法的算术强度约等于 $`B`$，这意味着：**只有当并发 Batch Size $`B > 295`$ 时，模型计算才能进入计算受限的黄金区间；而单用户推理（$`B = 1`$）是极端的内存受限任务，算术强度仅为 1，GPU 的算力被极度浪费。**
 
 ---
 
 ## Slide 3: 推理两阶段的算术强度计算
 
-大模型推理包含两个阶段：**预填充 (Prefill)** 与 **生成 (Generation)**。我们假设输入提示词长度为 $S$，正在生成的 Token 数量为 $T$。
+大模型推理包含两个阶段：**预填充 (Prefill)** 与 **生成 (Generation)**。我们假设输入提示词长度为 $`S`$，正在生成的 Token 数量为 $`T`$。
 
 ```
                     【Prefill 阶段 (T = S)】
@@ -94,25 +100,27 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 ---
 
 ### 1. MLP（前馈网络）层
-在经典的门控前馈网络（如 SwiGLU）中，包含三个大矩阵：$W_{\text{up}}, W_{\text{gate}}, W_{\text{down}}$。
-- **FLOPs 消耗**：$6 \cdot B \cdot T \cdot D \cdot F$。
-- **显存传输**：读取激活值和写回结果共 $4 B T D + 4 B T F$，读取三个大权重矩阵共 $6 D F$。
-- **算术强度**：在 $B \cdot T \ll D, F$ 时，算术强度退化为 $B \cdot T$。
+在经典的门控前馈网络（如 SwiGLU）中，包含三个大矩阵：$`W_{\text{up}}, W_{\text{gate}}, W_{\text{down}}`$。
+- **FLOPs 消耗**：$`6 \cdot B \cdot T \cdot D \cdot F`$。
+- **显存传输**：读取激活值和写回结果共 $`4 B T D + 4 B T F`$，读取三个大权重矩阵共 $`6 D F`$。
+- **算术强度**：在 $`B \cdot T \ll D, F`$ 时，算术强度退化为 $`B \cdot T`$。
   - **Prefill (T = S)**：输入 Token 数量大，易进入计算受限。
-  - **Generation (T = 1)**：算术强度为 $B$。只有通过拼命加大并发 Batch Size $B$，才能让 FFN 层摆脱显存瓶颈。
+  - **Generation (T = 1)**：算术强度为 $`B`$。只有通过拼命加大并发 Batch Size $`B`$，才能让 FFN 层摆脱显存瓶颈。
 
 ---
 
 ### 2. Attention（自注意力）层
-在自注意力层中，需要将 Query 向量与整个历史的 KV Cache（包含以前生成的 $S$ 个 Token）进行点积。
-- **FLOPs 消耗**：$4 \cdot B \cdot S \cdot T \cdot D$。
-- **显存传输**：读取 $Q, K, V$ 共 $2 B T D + 4 B S D$，写回 $Y$ 共 $2 B T D$（注意：每一层都需要将之前的所有 KV 向量从 HBM 读取到片上）。
+在自注意力层中，需要将 Query 向量与整个历史的 KV Cache（包含以前生成的 $`S`$ 个 Token）进行点积。
+- **FLOPs 消耗**：$`4 \cdot B \cdot S \cdot T \cdot D`$。
+- **显存传输**：读取 $`Q, K, V`$ 共 $`2 B T D + 4 B S D`$，写回 $`Y`$ 共 $`2 B T D`$（注意：每一层都需要将之前的所有 KV 向量从 HBM 读取到片上）。
 - **算术强度**：
-  $$\text{Attention Intensity} = \frac{S \cdot T}{S + T}$$
+  ```math
+  \text{Attention Intensity} = \frac{S \cdot T}{S + T}
+  ```
 - **两阶段对比**：
-  - **Prefill (T = S)**：算术强度为 $S / 2$。当提示词长度 $S$ 很大时，注意力计算是计算受限的。
-  - **Generation (T = 1)**：算术强度为 $\frac{S}{S + 1} < 1$。
-- **致命发现**：**生成阶段 Attention 的算术强度上限为 1，且与 Batch Size $B$ 完全无关！** 这是因为虽然 Batch 变大，但每个 Batch 都有自己独立的 KV 向量需要从显存读取，读取开销与 Batch 同步线性放大，无法通过 Batching 来均摊注意力机制的读写成本。
+  - **Prefill (T = S)**：算术强度为 $`S / 2`$。当提示词长度 $`S`$ 很大时，注意力计算是计算受限的。
+  - **Generation (T = 1)**：算术强度为 $`\frac{S}{S + 1} < 1`$。
+- **致命发现**：**生成阶段 Attention 的算术强度上限为 1，且与 Batch Size $`B`$ 完全无关！** 这是因为虽然 Batch 变大，但每个 Batch 都有自己独立的 KV 向量需要从显存读取，读取开销与 Batch 同步线性放大，无法通过 Batching 来均摊注意力机制的读写成本。
 
 ---
 
@@ -121,27 +129,31 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 我们通过具体公式估算 Llama 2 13B（参数大小约 26GB）在一块 H100 GPU 上的表现。
 
 - **Latency（延迟，单步生成耗时）**：
-  $$\text{Latency} = \frac{\text{Parameter Size} + \text{KV Cache Size}}{\text{Memory Bandwidth}}$$
+  ```math
+  \text{Latency} = \frac{\text{Parameter Size} + \text{KV Cache Size}}{\text{Memory Bandwidth}}
+  ```
 - **Throughput（系统吞吐量）**：
-  $$\text{Throughput} = \frac{B}{\text{Latency}}$$
+  ```math
+  \text{Throughput} = \frac{B}{\text{Latency}}
+  ```
 
 ---
 
-### 1. Batch Size $B$ 对性能的影响
+### 1. Batch Size $`B`$ 对性能的影响
 
 从下表中可以看出明显的**延迟-吞吐折中**：
 
-| Batch Size ($B$) | 显存占用 | Latency (ms/token) | Throughput (tokens/s) | 硬件表现评述 |
+| Batch Size ($`B`$) | 显存占用 | Latency (ms/token) | Throughput (tokens/s) | 硬件表现评述 |
 |:---|:---|:---|:---|:---|
-| **$B = 1$** | ~26 GB | ~8 ms | ~125 | **极低延迟，极低吞吐**：显存里几乎全是参数，读写极快，但 GPU 算力严重闲置。 |
-| **$B = 64$** | ~29 GB | ~9 ms | ~7110 | **黄金平衡**：由于读取 26GB 参数的开销被 64 个并发均摊，系统吞吐量暴增 56 倍，而延迟仅微幅上涨 12.5%。 |
-| **$B = 256$** | ~39 GB | ~12 ms | ~21330 | **显存溢出**：虽然吞吐量更高，但大 Batch 下的 KV Cache 膨胀到了 13GB，超出了单卡 80GB 的承受极限（考虑系统开销和非线性碎片），直接 OOM。 |
+| **$`B = 1`$** | ~26 GB | ~8 ms | ~125 | **极低延迟，极低吞吐**：显存里几乎全是参数，读写极快，但 GPU 算力严重闲置。 |
+| **$`B = 64`$** | ~29 GB | ~9 ms | ~7110 | **黄金平衡**：由于读取 26GB 参数的开销被 64 个并发均摊，系统吞吐量暴增 56 倍，而延迟仅微幅上涨 12.5%。 |
+| **$`B = 256`$** | ~39 GB | ~12 ms | ~21330 | **显存溢出**：虽然吞吐量更高，但大 Batch 下的 KV Cache 膨胀到了 13GB，超出了单卡 80GB 的承受极限（考虑系统开销和非线性碎片），直接 OOM。 |
 
 ---
 
 # Part 3: 优化 KV Cache (降低显存占用)
 
-由于推理是显存带宽受限的，且 KV Cache 的显存占用随 Batch Size $B$ 和上下文长度 $S$ 线性暴增，业界提出了各种**降低 KV Cache 大小**的架构创新。
+由于推理是显存带宽受限的，且 KV Cache 的显存占用随 Batch Size $`B`$ 和上下文长度 $`S`$ 线性暴增，业界提出了各种**降低 KV Cache 大小**的架构创新。
 
 ---
 
@@ -150,10 +162,10 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 ![GQA GMQA](https://jax-ml.github.io/scaling-book/assets/img/gmqa.png)
 
 ### 1. 从 MHA 到 MQA 再到 GQA
-- **MHA (Multi-Head Attention)**：每个 Query 头对应一组独立的 Key 和 Value 头（$K = N$）。KV Cache 极其庞大。
-- **MQA (Multi-Query Attention)**：所有 Query 头共享同一组 Key 和 Value 头（$K = 1$）。KV Cache 骤降为 $1/N$，但由于参数表达力损失过大，容易降低模型精度。
-- **GQA (Grouped-Query Attention)**：折中方案。将 Query 头进行分组，每一组内共享一组 KV 头（$K$ 介于 $1$ 到 $N$ 之间）。
-  - **效果**：不仅保持了几乎与 MHA 相同的语言模型准确率，还能让 KV Cache 尺寸缩小为原来的 $1/8$ 或 $1/5$，大幅拉高了系统的最大并发 Batch Size 与生成吞吐量。
+- **MHA (Multi-Head Attention)**：每个 Query 头对应一组独立的 Key 和 Value 头（$`K = N`$）。KV Cache 极其庞大。
+- **MQA (Multi-Query Attention)**：所有 Query 头共享同一组 Key 和 Value 头（$`K = 1`$）。KV Cache 骤降为 $`1/N`$，但由于参数表达力损失过大，容易降低模型精度。
+- **GQA (Grouped-Query Attention)**：折中方案。将 Query 头进行分组，每一组内共享一组 KV 头（$`K`$ 介于 $`1`$ 到 $`N`$ 之间）。
+  - **效果**：不仅保持了几乎与 MHA 相同的语言模型准确率，还能让 KV Cache 尺寸缩小为原来的 $`1/8`$ 或 $`1/5`$，大幅拉高了系统的最大并发 Batch Size 与生成吞吐量。
 
 ### 补充图片
 
@@ -168,10 +180,10 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 ![MLA Schema](images/mla-schema.png)
 
 - **核心思想：低秩投影压缩**
-  在传统的 Attention 中，每一层都需要在显存中存储很大的 $N \times H$ 维度的 KV 特征。MLA 引入了一个压缩瓶颈层，首先将隐藏状态压缩为一个 $C$ 维的潜在向量（Latent Vector）$c$（DeepSeek 中将 16384 维度压缩到仅 $C = 512$ 维度）。
+  在传统的 Attention 中，每一层都需要在显存中存储很大的 $`N \times H`$ 维度的 KV 特征。MLA 引入了一个压缩瓶颈层，首先将隐藏状态压缩为一个 $`C`$ 维的潜在向量（Latent Vector）$`c`$（DeepSeek 中将 16384 维度压缩到仅 $`C = 512`$ 维度）。
   - 在推理生成时，**显存中只存储压缩后的 512 维向量**。
-  - 在计算注意力时，临时在 GPU 算片上用投影矩阵将潜在特征 $c$ 还原（Up-project）为 Key 和 Value。
-  - **与 RoPE 的兼容性**：由于旋转位置编码（RoPE）会破坏乘法的结合律（使得位置信息无法在压缩空间中保留），MLA 额外保留了 64 维度的向量专门应用 RoPE，因此最终存储的 KV Cache 只有 $512 + 64 = 576$ 维度，开销远低于传统的 GQA。
+  - 在计算注意力时，临时在 GPU 算片上用投影矩阵将潜在特征 $`c`$ 还原（Up-project）为 Key 和 Value。
+  - **与 RoPE 的兼容性**：由于旋转位置编码（RoPE）会破坏乘法的结合律（使得位置信息无法在压缩空间中保留），MLA 额外保留了 64 维度的向量专门应用 RoPE，因此最终存储的 KV Cache 只有 $`512 + 64 = 576`$ 维度，开销远低于传统的 GQA。
 
 ### 补充图片
 
@@ -196,11 +208,11 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 ---
 
 ### 1. 局部/滑动窗口注意力 (Sliding Window Attention)
-- **原理**：模型只对当前 Token 之前固定长度为 $W$ 的局部窗口内的 Token 计算注意力。
+- **原理**：模型只对当前 Token 之前固定长度为 $`W`$ 的局部窗口内的 Token 计算注意力。
 
 ![Longformer Attention](images/longformer-attention.png)
 
-- **优势**：KV Cache 的最大尺寸被锁死在 $W$，**与自回归生成的长上下文序列长度完全脱耦**。
+- **优势**：KV Cache 的最大尺寸被锁死在 $`W`$，**与自回归生成的长上下文序列长度完全脱耦**。
 - **劣势**：模型丧失了对远距离历史的直接建模能力。
 - **折中**：通常采用“混合层（Hybrid Layers）”架构，即让绝大多数层使用低开销的滑动窗口注意力，每隔几层放置一个全局自注意力层。
 
@@ -211,8 +223,8 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 
 ![DeepSeek-V4 Attention](images/deepseek-v4-attention.png)
 
-- **CSA (Compressed Sparse Attention)**：每隔 $m$ 个 Token 将特征聚类压缩为 1 个 Token 表达。
-- **DSA (DeepSeek Sparse Attention)**：通过路由门控只选择前 $k$ 个最重要的 KV 块进行计算。
+- **CSA (Compressed Sparse Attention)**：每隔 $`m`$ 个 Token 将特征聚类压缩为 1 个 Token 表达。
+- **DSA (DeepSeek Sparse Attention)**：通过路由门控只选择前 $`k`$ 个最重要的 KV 块进行计算。
 - **HCA (Heavily Compressed Attention)**：应用极高倍率的重压缩，极大削减了超长上下文下的访存压力。
 
 ---
@@ -228,10 +240,14 @@ $$\lim_{D, F \to \infty} \frac{B D F}{B D + D F + B F} = B$$
 量化指的是将模型权重和激活值从高精度的浮点数（如 BF16，2字节）转换为低精度的数据格式（如 FP8、INT8 或 INT4，分别占 1字节、1字节和 0.5字节）。
 
 ### 1. 线性量化数学原理
-将浮点数 $x$ 映射到低精度整数 $x_{\text{quant}}$ 的公式为：
-$$x_{\text{quant}} = \text{round}\left( \frac{x}{\text{scale}} \right) + \text{zero\_point}$$
+将浮点数 $`x`$ 映射到低精度整数 $`x_{\text{quant}}`$ 的公式为：
+```math
+x_{\text{quant}} = \text{round}\left( \frac{x}{\text{scale}} \right) + \text{zero\_point}
+```
 反量化（Dequantize，在计算矩阵乘法前还原为浮点数）公式为：
-$$x_{\text{approx}} = (x_{\text{quant}} - \text{zero\_point}) \times \text{scale}$$
+```math
+x_{\text{approx}} = (x_{\text{quant}} - \text{zero\_point}) \times \text{scale}
+```
 
 ---
 
@@ -282,8 +298,8 @@ NVIDIA (2024) 提出的**剪枝与蒸馏闭环流程**：
 ![Speculative Sampling Algorithm](images/speculative-sampling-algorithm.png)
 
 ### 1. 核心流程
-1. **草稿阶段**：使用一个极快的小模型（Draft Model，如 8B）自回归地向前“猜测”生成 $K$ 个 Token。这一步非常快，因为小模型参数少。
-2. **验证阶段**：将大模型（Target Model，如 70B）在 Prefill 状态下一次性接收这 $K$ 个草稿 Token，并行计算所有位置的真实条件概率。
+1. **草稿阶段**：使用一个极快的小模型（Draft Model，如 8B）自回归地向前“猜测”生成 $`K`$ 个 Token。这一步非常快，因为小模型参数少。
+2. **验证阶段**：将大模型（Target Model，如 70B）在 Prefill 状态下一次性接收这 $`K`$ 个草稿 Token，并行计算所有位置的真实条件概率。
 3. **接受/拒绝决策**：大模型根据概率分布，决定接受前几个草稿 Token。一旦某一步被拒绝，后续的草稿全部作废，大模型吐出一个修正的 Token，重新开始下一轮投机。
 
 ---
@@ -291,24 +307,32 @@ NVIDIA (2024) 提出的**剪枝与蒸馏闭环流程**：
 ### 2. 保证精确采样的数学证明 (Modified Rejection Sampling)
 投机采样最惊艳的性质是：**其生成结果在数学概率分布上，与直接使用大模型一步步慢速生成的分布完全一致（无损）**。
 
-#### 证明示例：设词表只有两个词 $\{A, B\}$
-- 大模型（目标）真实分布为：$[q(A), q(B)]$
-- 小模型（草稿）猜测分布为：$[p(A), p(B)]$
-- 假设小模型在 $A$ 上过拟合，在 $B$ 上欠拟合，即：
-  $$p(A) > q(A) \quad \text{且} \quad p(B) < q(B)$$
+#### 证明示例：设词表只有两个词 $`\{A, B\}`$
+- 大模型（目标）真实分布为：$`[q(A), q(B)]`$
+- 小模型（草稿）猜测分布为：$`[p(A), p(B)]`$
+- 假设小模型在 $`A`$ 上过拟合，在 $`B`$ 上欠拟合，即：
+  ```math
+  p(A) > q(A) \quad \text{且} \quad p(B) < q(B)
+  ```
 - **修改版拒绝采样规则**：
-  - 如果小模型采样了 $A$：以概率 $\frac{q(A)}{p(A)}$ 接受它。
-  - 如果小模型采样了 $B$：由于 $\frac{q(B)}{p(B)} > 1$，以概率 $1$ 接受它。
+  - 如果小模型采样了 $`A`$：以概率 $`\frac{q(A)}{p(A)}`$ 接受它。
+  - 如果小模型采样了 $`B`$：由于 $`\frac{q(B)}{p(B)} > 1`$，以概率 $`1`$ 接受它。
   - 如果被拒绝，则从**残留分布**（Residual Distribution）中重新采样：
-    $$\text{Residual} = \max(0, q - p) = [0, q(B) - p(B)]$$
+    ```math
+    \text{Residual} = \max(0, q - p) = [0, q(B) - p(B)]
+    ```
 
 #### 计算最终采样概率：
-- **采样到 $A$ 的概率**：
-  由于残差分布在 $A$ 上的值为 0（因为被拒绝后绝对不会重采样出 $A$）：
-  $$P(\text{sample } A) = p(A) \cdot \frac{q(A)}{p(A)} + 0 = q(A)$$
-- **采样到 $B$ 的概率**：
-  $$P(\text{sample } B) = p(B) \cdot 1 + p(A) \cdot \left(1 - \frac{q(A)}{p(A)}\right) \cdot 1 = p(B) + p(A) - q(A)$$
-  因为 $p(A) + p(B) = q(A) + q(B) = 1$，所以 $p(B) + p(A) - q(A) = q(B)$。
+- **采样到 $`A`$ 的概率**：
+  由于残差分布在 $`A`$ 上的值为 0（因为被拒绝后绝对不会重采样出 $`A`$）：
+  ```math
+  P(\text{sample } A) = p(A) \cdot \frac{q(A)}{p(A)} + 0 = q(A)
+  ```
+- **采样到 $`B`$ 的概率**：
+  ```math
+  P(\text{sample } B) = p(B) \cdot 1 + p(A) \cdot \left(1 - \frac{q(A)}{p(A)}\right) \cdot 1 = p(B) + p(A) - q(A)
+  ```
+  因为 $`p(A) + p(B) = q(A) + q(B) = 1`$，所以 $`p(B) + p(A) - q(A) = q(B)`$。
 - **数学期望完全吻合！** 证明投机采样是大模型的等价映射。
 
 ### 补充图片
@@ -319,7 +343,7 @@ NVIDIA (2024) 提出的**剪枝与蒸馏闭环流程**：
 ---
 
 ### 3. 草稿模型的进阶变体
-- **Medusa (美杜莎)**：不需要额外维护一个小模型。而是直接在大模型最后一层挂载多个并行的预测头（Heads），分别去猜测 $+1, +2, +3$ 步的 Token。
+- **Medusa (美杜莎)**：不需要额外维护一个小模型。而是直接在大模型最后一层挂载多个并行的预测头（Heads），分别去猜测 $`+1, +2, +3`$ 步的 Token。
 - **EAGLE**：小模型在猜测时，直接融入大模型前一步提取的顶层高级特征特征向量，使草稿的猜测准确率大幅飙升。
 
 ![Medusa Eagle](images/medusa-eagle.png)
@@ -349,9 +373,9 @@ NVIDIA (2024) 提出的**剪枝与蒸馏闭环流程**：
 ---
 
 ### 3. 选择性批处理 (Selective Batching)
-- **痛点**：多请求长度极度参差（Ragged Array），无法凑成完美的 $B \times S \times H$ 张量。
+- **痛点**：多请求长度极度参差（Ragged Array），无法凑成完美的 $`B \times S \times H`$ 张量。
 - **对策**：
-  - 在计算 **非注意力层**（如大矩阵相乘的 FFN、RMSNorm）时，将所有序列的 Token 展平并排成一个超长的 1D 向量：$\sum_{i} S_i \times H$，直接进行单次大矩阵乘，压榨 GPU 算力。
+  - 在计算 **非注意力层**（如大矩阵相乘的 FFN、RMSNorm）时，将所有序列的 Token 展平并排成一个超长的 1D 向量：$`\sum_{i} S_i \times H`$，直接进行单次大矩阵乘，压榨 GPU 算力。
   - 只在计算 **Attention** 时，根据位置偏置信息，将各个请求剥离开来独立计算。
 
 ---
