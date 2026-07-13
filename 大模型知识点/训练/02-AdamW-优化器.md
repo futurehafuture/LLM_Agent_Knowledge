@@ -46,7 +46,7 @@ updated: 2026-05-11
 
 ```math
 \begin{aligned}
-m_t &= \beta \cdot m_{t-1} + (1 - \beta) \cdot g_t \quad\text{（$\beta \approx 0.9$）} \\
+m_t &= \beta \cdot m_{t-1} + (1 - \beta) \cdot g_t \quad\text{（}\beta \approx 0.9\text{）} \\
 \theta_t &= \theta_{t-1} - \alpha \cdot m_t
 \end{aligned}
 ```
@@ -104,7 +104,7 @@ m_t &= (1-\beta) g_t + \beta m_{t-1} \\
 
 ```math
 \begin{aligned}
-v_t &= \beta_2 \cdot v_{t-1} + (1 - \beta_2) \cdot g_t^2 \quad\text{（$\beta_2 \approx 0.999$）} \\
+v_t &= \beta_2 \cdot v_{t-1} + (1 - \beta_2) \cdot g_t^2 \quad\text{（}\beta_2 \approx 0.999\text{）} \\
 \theta_t &= \theta_{t-1} - \alpha \cdot \frac{g_t}{\sqrt{v_t} + \epsilon}
 \end{aligned}
 ```
@@ -145,7 +145,7 @@ $`v_t`$ 是**梯度平方的指数移动平均**。逐词拆解：
 **$`v_t`$ 在更新公式里怎么起作用？** 看最后一行：
 
 ```math
-\theta_t = \theta_{t-1} - \alpha \cdot \frac{\hat{m}_t}{\underbrace{\sqrt{\hat{v}_t} + \epsilon}_{\text{分母由 $v_t$ 决定}}}
+\theta_t = \theta_{t-1} - \alpha \cdot \frac{\hat{m}_t}{\underbrace{\sqrt{\hat{v}_t} + \epsilon}_{\text{分母由 }v_t\text{ 决定}}}
 ```
 
 - $`v_t`$ 大 → $`\sqrt{v_t}`$ 大 → 分母大 → $`\frac{\hat{m}_t}{\sqrt{\hat{v}_t}}`$ 小 → **这个参数的更新量自动缩小**
