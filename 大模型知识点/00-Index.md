@@ -1,7 +1,7 @@
 ---
 tags: [面试, 大模型, 索引]
 created: 2026-05-09
-updated: 2026-06-12
+updated: 2026-07-13
 ---
 
 # 大模型岗位面试准备 · 索引
@@ -61,7 +61,29 @@ updated: 2026-06-12
 
 > 总览见 [[推理/00-推理-总览]]
 
-- **[[01-KV-Cache-为什么不缓存Q]]** —— self-attention 推理为何只 cache K/V 不 cache Q；prefill vs decode 阶段；KV 显存公式；MQA/GQA/MLA 与 KV Cache 的关系；PagedAttention / StreamingLLM / Prefix Caching。
+### 基础与性能模型
+
+- **[[01-KV-Cache-为什么不缓存Q]]** —— causal attention、Prefill/Decode、KV 显存公式与只缓存 K/V 的数学原因。
+- **[[02-LLM推理完整流程与性能指标]]** —— 请求全流程；TTFT、TPOT、ITL、吞吐、Goodput 与 SLO。
+- **[[03-Prefill与Decode性能模型]]** —— Roofline、算术强度；Prefill compute-bound 与 Decode memory-bound。
+- **[[04-LLM解码与采样算法]]** —— Greedy、Temperature、Top-k/Top-p、Beam Search 与采样系统开销。
+- **[[05-FlashAttention原理与演进]]** —— IO-aware exact attention、online softmax 与 FA1—FA4。
+- **[[06-PagedAttention与KV内存管理]]** —— KV 分页、Block Table、引用计数与 Copy-on-Write。
+
+### 调度与加速
+
+- **[[07-Continuous-Batching与推理调度]]**、**[[08-Chunked-Prefill与长Prompt调度]]** —— token budget、动态 batch、长 Prefill 干扰与调度权衡。
+- **[[09-Prefix-Caching与RadixAttention]]** —— 前缀 KV 复用、块哈希、Radix Tree 与缓存淘汰。
+- **[[10-大模型量化推理]]** —— GPTQ、AWQ、SmoothQuant、FP8/FP4 与 KV 量化。
+- **[[11-投机解码-Speculative-Decoding]]** —— 分布保持证明、Draft、Medusa、EAGLE 与 MTP。
+- **[[12-分布式推理与模型并行]]**、**[[13-Prefill-Decode分离部署]]**、**[[14-长上下文推理优化]]** —— 多卡并行、KV 传输、PD 分离与长上下文。
+
+### 框架与生产系统
+
+- **[[15-vLLM内部架构详解]]**、**[[16-SGLang与RadixAttention]]**、**[[17-TensorRT-LLM推理优化]]** —— 三类主流推理运行时的架构与核心优化。
+- **[[18-CUDA-Graph与算子融合]]**、**[[19-MoE模型推理优化]]** —— Kernel launch、融合、Expert Parallel 与 All-to-All。
+- **[[20-结构化输出与约束解码]]**、**[[21-Multi-LoRA推理服务]]**、**[[22-多模态模型推理]]** —— 约束生成、多租户 adapter 和多模态专项。
+- **[[23-推理服务架构与生产部署]]**、**[[24-推理性能评测与Benchmark]]** —— 路由、限流、扩缩容、故障、Benchmark 与 Goodput。
 
 ---
 
@@ -80,7 +102,7 @@ updated: 2026-06-12
 | ----- | ---------------------------------------------------------------------------------------------- |
 | 模型架构  | MoE（Switch Transformer / GShard / DeepSeek MoE）、Layer Norm vs RMS Norm、激活函数 GeLU/SwiGLU        |
 | 训练    | Mixed Precision / ZeRO / FSDP / Megatron TP+PP、Flash Attention 1/2/3、梯度累积 / 梯度检查点              |
-| 推理    | Speculative Decoding / Medusa / EAGLE、量化推理（GPTQ / AWQ / SmoothQuant / FP8）、vLLM PagedAttention |
+| 推理    | CPU/端侧推理、异构加速器与能耗优化可作为后续专题 |
 | 多模态   | CLIP / BLIP / LLaVA / Flamingo / Q-Former                                                      |
 | Agent | ReAct / Reflexion / Tool Use / Function Calling / MCP                                          |
 | 算法题   | 高频 hot 100、动态规划专题、二叉树专题、滑动窗口专题                                                                 |
