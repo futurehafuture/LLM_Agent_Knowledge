@@ -35,7 +35,7 @@ x_{t+1}=\arg\max_i z_i.
 只保留概率最大的 $`k`$ 个 token，再归一化采样：
 
 ```math
-S_k=\operatorname{TopK}(p,k),\qquad
+S_k=\mathrm{TopK}(p,k),\qquad
 \tilde p_i=\frac{p_i\mathbf1[i\in S_k]}{\sum_{j\in S_k}p_j}.
 ```
 

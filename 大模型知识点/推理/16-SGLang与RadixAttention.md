@@ -31,7 +31,7 @@ System Prompt
 RadixAttention 把 token 序列作为 radix tree 的路径，节点对应可复用 KV 段。插入新请求时找到最长公共前缀：
 
 ```math
-L=\operatorname{LCP}(x^{new},\ tree).
+L=\mathrm{LCP}(x^{new},\ tree).
 ```
 
 前 $`L`$ 个 token 复用 KV，只计算后缀。请求结束后，未被引用的节点可以留在 LRU cache 中供未来请求命中。

@@ -11,7 +11,7 @@ updated: 2026-07-13
 ## 1. 标准 Attention 的内存问题
 
 ```math
-O=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt d}+M\right)V.
+O=\mathrm{softmax}\left(\frac{QK^\top}{\sqrt d}+M\right)V.
 ```
 
 朴素实现通常分成多个 kernel：

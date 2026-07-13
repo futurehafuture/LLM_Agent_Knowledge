@@ -60,7 +60,7 @@ updated: 2026-07-13
 请求按时间到达，测排队和尾延迟。推荐用开环泊松到达：
 
 ```math
-\Delta t\sim\operatorname{Exponential}(\lambda).
+\Delta t\sim\mathrm{Exponential}(\lambda).
 ```
 
 这样可扫描系统从低负载到过载的变化。

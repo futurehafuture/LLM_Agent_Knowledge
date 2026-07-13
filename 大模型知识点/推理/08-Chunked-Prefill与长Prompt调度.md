@@ -35,7 +35,7 @@ K=\left\lceil\frac{N}{C}\right\rceil.
 第 $`k`$ 个 chunk 的 query 需要看到此前所有 token 的 K/V：
 
 ```math
-O_k=\operatorname{softmax}\left(Q_k[K_{<k};K_k]^\top+M_k\right)[V_{<k};V_k].
+O_k=\mathrm{softmax}\left(Q_k[K_{<k};K_k]^\top+M_k\right)[V_{<k};V_k].
 ```
 
 历史 $`K_{<k},V_{<k}`$ 已在 cache 中，因此不需要重算历史 hidden state。注意当前 chunk 内仍要使用正确的 causal mask。

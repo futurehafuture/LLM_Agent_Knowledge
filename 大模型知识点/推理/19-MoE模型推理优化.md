@@ -13,13 +13,13 @@ updated: 2026-07-13
 对 token 表示 $`h`$，router 产生 expert 分数：
 
 ```math
-g=\operatorname{softmax}(W_rh).
+g=\mathrm{softmax}(W_rh).
 ```
 
 选择 top-k experts：
 
 ```math
-y=\sum_{e\in\operatorname{TopK}(g,k)}g_eE_e(h).
+y=\sum_{e\in\mathrm{TopK}(g,k)}g_eE_e(h).
 ```
 
 总参数量由所有 experts 决定，单 token 激活参数量只由 $`k`$ 个 experts 决定。
