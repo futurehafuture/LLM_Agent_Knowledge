@@ -254,6 +254,8 @@ K_{1:T}^{(L)}, V_{1:T}^{(L)}
 
 ## 6. 围绕 KV Cache 的进阶优化（面试高频追问点）
 
+> 本节用于建立全景认识。更完整的内存布局、算法推导和系统实现分别见 [[06-PagedAttention与KV内存管理]]、[[09-Prefix-Caching与RadixAttention]]、[[10-大模型量化推理]] 与 [[14-长上下文推理优化]]。
+
 ### 6.1 MHA → MQA → GQA → MLA：减小每 token 的 KV 字节数
 
 | 变体 | K/V head 数 | KV Cache 大小 | 代表模型 |
