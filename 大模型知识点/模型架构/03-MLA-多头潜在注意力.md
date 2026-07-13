@@ -7,7 +7,7 @@ tags:
   - DeepSeek
   - KV Cache
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-13
 ---
 
 # MLA：多头潜在注意力（Multi-head Latent Attention）
@@ -72,13 +72,13 @@ hidden h_t (d_model)
 
 数学上：
 
-$$
+```math
 c^{KV}_t = W^{DKV} h_t \quad \in \mathbb{R}^{d_c}
-$$
+```
 
-$$
+```math
 K_t = W^{UK} c^{KV}_t,\quad V_t = W^{UV} c^{KV}_t
-$$
+```
 
 > 直觉：把"高维 K + 高维 V"压成"低维潜在向量"，需要时再展开。
 >
@@ -108,9 +108,9 @@ $$
 
 注意力分数：
 
-$$
+```math
 \text{score} = Q_t^T K_s = (W^Q h_t)^T (W^{UK} c^{KV}_s) = h_t^T \underbrace{(W^Q)^T W^{UK}}_{\text{融成一个矩阵}} c^{KV}_s
-$$
+```
 
 **关键观察**：$(W^Q)^T W^{UK}$ 是固定矩阵，可以**离线融合**成一个新的等效 $\tilde{W}^Q$。
 
@@ -128,9 +128,9 @@ V 侧同理：$W^{UV}$ 可以吸收进输出投影 $W^O$。
 
 RoPE 通过对 Q、K 做位置相关的旋转来注入位置信息：
 
-$$
+```math
 Q'_t = R_t Q_t,\quad K'_t = R_t K_t
-$$
+```
 
 详见 [[04-RoPE-旋转位置编码]]。
 
@@ -144,9 +144,9 @@ $$
 
 MLA 把 Q、K 各自**分成两段拼接**：
 
-$$
+```math
 Q_t = [Q^C_t;\ Q^R_t],\quad K_t = [K^C_t;\ K^R_t]
-$$
+```
 
 | 部分 | 维度 | 作用 |
 |---|---|---|
@@ -155,9 +155,9 @@ $$
 
 注意力分数：
 
-$$
+```math
 Q_t^T K_s = (Q^C_t)^T K^C_s + (Q^R_t)^T K^R_s
-$$
+```
 
 两部分独立计算后相加。
 
@@ -178,9 +178,9 @@ $$
 
 MLA 还对 Q 做了类似的低秩压缩：
 
-$$
+```math
 c^Q_t = W^{DQ} h_t \in \mathbb{R}^{d'_c},\quad Q^C_t = W^{UQ} c^Q_t
-$$
+```
 
 **目的不是 cache（Q 不需要 cache），而是节省训练时的激活显存和参数量**。
 
