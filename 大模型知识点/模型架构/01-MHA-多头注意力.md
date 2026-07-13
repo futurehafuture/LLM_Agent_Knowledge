@@ -5,7 +5,7 @@ tags:
   - 注意力机制
   - MHA
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-07-13
 ---
 
 # MHA：多头注意力机制
@@ -20,9 +20,9 @@ updated: 2026-05-11
 
 注意力机制的核心操作只有一句话：**用 Query 和 Key 计算相似度，按相似度对 Value 做加权求和。**
 
-$$
+```math
 \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V
-$$
+```
 
 拆开看这个公式：
 
@@ -126,15 +126,15 @@ Self-Attention 的特殊之处：**Q、K、V 都来自同一个输入序列**。
 
 每个头的计算：
 
-$$
+```math
 \text{head}_i = \text{Attention}(Q W_i^Q,\; K W_i^K,\; V W_i^V)
-$$
+```
 
 最终输出：
 
-$$
+```math
 \text{MHA}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h) W^O
-$$
+```
 
 ---
 
@@ -158,9 +158,9 @@ $$
 
 Softmax 把一组实数 $(z_1, z_2, \dots, z_n)$ 转成概率分布（正数且和为 1）：
 
-$$
+```math
 \text{softmax}(z_i) = \frac{e^{z_i}}{\sum_j e^{z_j}}
-$$
+```
 
 **关键性质**：它对"输入的相对大小"非常敏感，对"绝对大小"不那么敏感（因为有归一化）。但它**对绝对幅度有反应**：
 
@@ -183,20 +183,20 @@ $$
 
 机器学习里"训练"的核心是**反向传播算梯度**。softmax 的梯度长这样：
 
-$$
+```math
 \frac{\partial \text{softmax}(z_i)}{\partial z_j} = \begin{cases}
 p_i (1 - p_i) & i = j \\
 - p_i p_j & i \ne j
 \end{cases}
-$$
+```
 
 其中 $p_i = \text{softmax}(z_i)$。
 
 **当 softmax 接近 one-hot**（某一项 $p_i \approx 1$，其他 $p_j \approx 0$）：
 
-$$
+```math
 p_i(1-p_i) \approx 1 \times 0 = 0,\quad p_i p_j \approx 1 \times 0 = 0
-$$
+```
 
 → **所有偏导都接近 0**！
 
@@ -213,9 +213,9 @@ $$
 
 Attention 的分数是 Q 和 K 这两个**向量的点积**：
 
-$$
+```math
 \text{score} = q \cdot k = \sum_{i=1}^{d_k} q_i \cdot k_i
-$$
+```
 
 —— 这是 $d_k$ 个数相加。**加的项越多，结果的"波动范围"越大**，这是常识。
 
@@ -267,23 +267,23 @@ $$
 
 **方差的缩放规则**：
 
-$$
+```math
 \text{Var}(c \cdot X) = c^2 \cdot \text{Var}(X)
-$$
+```
 
 如果给点积乘以 $\frac{1}{\sqrt{d_k}}$：
 
-$$
+```math
 \text{Var}\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = \frac{1}{d_k} \cdot \text{Var}(q \cdot k) = \frac{1}{d_k} \cdot d_k = 1 \quad \checkmark
-$$
+```
 
 **完美**：方差回到 1。
 
 如果除以 $d_k$（而不是 $\sqrt{d_k}$）：
 
-$$
+```math
 \text{Var}\left(\frac{q \cdot k}{d_k}\right) = \frac{1}{d_k^2} \cdot d_k = \frac{1}{d_k}
-$$
+```
 
 → 方差变成 $1/d_k$，**过度缩小**，softmax 反而变得太平坦，所有 token 几乎被等权重对待，模型也学不到差异。
 
