@@ -6,7 +6,7 @@ tags:
   - GQA
   - KV Cache
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-07-13
 ---
 
 # GQA：分组查询注意力
@@ -32,7 +32,7 @@ Step 3: 输入 "今天天气很" → 输出 "好"
 
 每生成一个新 token，都需要和之前**所有**历史 token 做 Attention。
 
-如果每步重算一次所有历史 token 的 K 和 V，计算量会爆炸（$O(T^2)$ 每一步都重算）。
+如果每步重算一次所有历史 token 的 K 和 V，计算量会爆炸（$`O(T^2)`$ 每一步都重算）。
 
 **KV Cache 的做法**：把算过的 K、V 存起来，新 token 只算自己的 Q、K、V，然后 Q 和所有缓存的 K 算 Attention。
 
@@ -44,19 +44,19 @@ Step 3: 算 Q₃, K₃, V₃；Q₃ 和 [K₁, K₂, K₃] 做 Attention → ...
 
 ### 0.3 KV Cache 的内存占用
 
-在 MHA 中，**每个头**都有独立的 $W^K$ 和 $W^V$，所以每个 token 要存 $h$ 套 K、V。
+在 MHA 中，**每个头**都有独立的 $`W^K`$ 和 $`W^V`$，所以每个 token 要存 $`h`$ 套 K、V。
 
 每层的 KV Cache 大小：
 
-$$
+```math
 2 \times \text{batch} \times h \times T \times d_k
-$$
+```
 
-一个例子：LLaMA-7B，32 层，32 头，$d_k=128$，序列长度 2048，batch=1：
+一个例子：LLaMA-7B，32 层，32 头，$`d_k=128`$，序列长度 2048，batch=1：
 
-$$
+```math
 2 \times 32 \times 32 \times 2048 \times 128 \times 2\text{ bytes (FP16)} \approx 1\text{ GB}
-$$
+```
 
 **序列越长，KV Cache 越大。** 这就是 MQA/GQA 要解决的问题。
 
@@ -76,23 +76,23 @@ V: ■ ■ ■ ■  (每个头独立)     V: ■ . . .  (所有头共享)      V
 
 ### MHA（多头注意力）
 
-- $h$ 个 Q 头，$h$ 个 K 头，$h$ 个 V 头
+- $`h`$ 个 Q 头，$`h`$ 个 K 头，$`h`$ 个 V 头
 - 每个头完全独立
-- KV 参数：$h \times d_k$ 个
+- KV 参数：$`h \times d_k`$ 个
 - KV Cache 最大，表示能力最强
 
 ### MQA（多查询注意力）
 
-- $h$ 个 Q 头，**1** 个 K 头，**1** 个 V 头
+- $`h`$ 个 Q 头，**1** 个 K 头，**1** 个 V 头
 - 所有头共享同一套 K、V
-- KV 参数：$1 \times d_k$ 个
-- KV Cache 最小（$1/h$），但表示能力下降明显
+- KV 参数：$`1 \times d_k`$ 个
+- KV Cache 最小（$`1/h`$），但表示能力下降明显
 
 ### GQA（分组查询注意力）
 
-- $h$ 个 Q 头，**g** 个 K 头，**g** 个 V 头（$1 < g < h$）
+- $`h`$ 个 Q 头，**g** 个 K 头，**g** 个 V 头（$`1 < g < h`$）
 - Q 头分成 g 组，每组共享一套 K、V
-- KV 参数：$g \times d_k$ 个
+- KV 参数：$`g \times d_k`$ 个
 - **MHA 和 MQA 之间的折中方案**
 
 ---
@@ -101,7 +101,7 @@ V: ■ ■ ■ ■  (每个头独立)     V: ■ . . .  (所有头共享)      V
 
 ### 2.1 分组逻辑
 
-假设 $h=8$，$g=4$（即 4 个 KV 组）：
+假设 $`h=8`$，$`g=4`$（即 4 个 KV 组）：
 
 ```
 Q heads:  Q₀  Q₁  Q₂  Q₃  Q₄  Q₅  Q₆  Q₇
@@ -122,10 +122,10 @@ KV:       KV₀    KV₁    KV₂    KV₃
 
 | | MHA | GQA (g=4) | MQA |
 |---|---|---|---|
-| Q 参数 | $h \times d_k$ | $h \times d_k$ | $h \times d_k$ |
-| K 参数 | $h \times d_k$ | $g \times d_k$ | $1 \times d_k$ |
-| V 参数 | $h \times d_k$ | $g \times d_k$ | $1 \times d_k$ |
-| KV Cache 大小 | 100%（基准） | $g/h = 50\%$（当 g=4, h=8） | $1/h = 12.5\%$ |
+| Q 参数 | $`h \times d_k`$ | $`h \times d_k`$ | $`h \times d_k`$ |
+| K 参数 | $`h \times d_k`$ | $`g \times d_k`$ | $`1 \times d_k`$ |
+| V 参数 | $`h \times d_k`$ | $`g \times d_k`$ | $`1 \times d_k`$ |
+| KV Cache 大小 | 100%（基准） | $`g/h = 50\%`$（当 g=4, h=8） | $`1/h = 12.5\%`$ |
 | 表示能力 | 最强 | 中等 | 较弱 |
 
 ### 2.3 GQA 在性能-效率上的权衡
@@ -246,13 +246,13 @@ MHA (Transformer, 2017)
 
 - 越大越接近 MHA（性能好、内存大）
 - 越小越接近 MQA（性能差、内存小）
-- LLaMA 2 70B 用 $g=8$（$h=64$），LLaMA 3 8B 用 $g=4$（$h=32$）
-- 一般取 $g = h/4$ 到 $h/8$
+- LLaMA 2 70B 用 $`g=8`$（$`h=64`$），LLaMA 3 8B 用 $`g=4`$（$`h=32`$）
+- 一般取 $`g = h/4`$ 到 $`h/8`$
 
 ### Q4: GQA 训练和推理各有什么优势？
 
 - 训练：K、V 参数少，显存占用小
-- 推理：KV Cache 小 $g/h$ 倍，可支持更长上下文或更大 batch
+- 推理：KV Cache 小 $`g/h`$ 倍，可支持更长上下文或更大 batch
 
 ---
 

@@ -72,12 +72,14 @@
 
 本页回顾了**策略梯度（Policy Gradient, PG）**在理论上的演进路径。
 - **尝试 1：经典策略梯度（REINFORCE）**：
-  $$\nabla_\theta \mathbb{E}_{z \sim p_\theta}[R(z)] = \mathbb{E}_{z \sim p_\theta} \left[ R(z) \nabla_\theta \log p_\theta(z) \right]$$
-  其核心直觉是，如果一个动作（生成轨迹 $z$）得到了高奖励 $R(z)$，我们就增大该动作在当前策略 $\theta$ 下的概率。然而，因为 $R(z)$ 是在完整的 Token 序列生成完毕后才获得的，且采样空间极大，这会导致**梯度估计的方差极大**，训练难以收敛。
+  ```math
+  \nabla_\theta \mathbb{E}_{z \sim p_\theta}[R(z)] = \mathbb{E}_{z \sim p_\theta} \left[ R(z) \nabla_\theta \log p_\theta(z) \right]
+  ```
+  其核心直觉是，如果一个动作（生成轨迹 $`z`$）得到了高奖励 $`R(z)`$，我们就增大该动作在当前策略 $`\theta`$ 下的概率。然而，因为 $`R(z)`$ 是在完整的 Token 序列生成完毕后才获得的，且采样空间极大，这会导致**梯度估计的方差极大**，训练难以收敛。
 - **尝试 2：信任区域策略优化（TRPO）**：
   为了限制策略更新的步长，TRPO 引入了 Kullback-Leibler (KL) 散度作为约束，在当前策略附近对目标进行线性化。这保证了策略更新的稳定性，但由于需要计算复杂的 Fisher 信息矩阵（Hessian 矩阵的逆），计算成本过高。
 - **尝试 3：近端策略优化（PPO）**：
-  OpenAI 在 2017 年提出的替代方案，通过将新旧策略的概率比率限制在 $[1-\epsilon, 1+\epsilon]$ 的区间（Clipped Surrogate Objective），避免了 TRPO 复杂的二阶导数计算，在工程上取得了巨大成功。
+  OpenAI 在 2017 年提出的替代方案，通过将新旧策略的概率比率限制在 $`[1-\epsilon, 1+\epsilon]`$ 的区间（Clipped Surrogate Objective），避免了 TRPO 复杂的二阶导数计算，在工程上取得了巨大成功。
 
 ---
 
@@ -101,11 +103,13 @@ PPO 是目前策略梯度方法中应用最广的基石。
 ### 讲解
 
 本页指出，从概念上讲，PPO 的核心在其**剪切代理目标函数（Clipped Surrogate Objective）**：
-- 定义概率比率 $r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}$。
+- 定义概率比率 $`r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}`$。
 - 目标函数为：
-  $$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right) \right]$$
-  - 当优势 $\hat{A}_t > 0$（说明该动作好于基线）时，我们增加概率比率，但当比率超过 $1+\epsilon$ 时被 Clipped，限制过大的正向更新。
-  - 当优势 $\hat{A}_t < 0$（动作差于基线）时，我们降低概率比率，当比率低于 $1-\epsilon$ 时被 Clipped。
+  ```math
+  L^{CLIP}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t\right) \right]
+  ```
+  - 当优势 $`\hat{A}_t > 0`$（说明该动作好于基线）时，我们增加概率比率，但当比率超过 $`1+\epsilon`$ 时被 Clipped，限制过大的正向更新。
+  - 当优势 $`\hat{A}_t < 0`$（动作差于基线）时，我们降低概率比率，当比率低于 $`1-\epsilon`$ 时被 Clipped。
   这确保了参数更新被限制在一个可信赖的微调区域（Trust Region）内。
 
 ---
@@ -155,7 +159,7 @@ AlpacaFarm 是斯坦福大学发布的一套针对人类偏好对齐的模拟评
 
 本页指向了 AlpacaFarm 代码库中 PPO 训练器的外层循环（Outer Loop）。
 PPO 训练是一个两阶段交替过程：
-1. **Rollout 采样阶段**：当前策略网络 $\pi_\theta$ 在给定的 Prompt 下进行文本生成，记录下动作 log-probabilities，并使用 Reward Model 给出得分。
+1. **Rollout 采样阶段**：当前策略网络 $`\pi_\theta`$ 在给定的 Prompt 下进行文本生成，记录下动作 log-probabilities，并使用 Reward Model 给出得分。
 2. **Inner Loop 优化阶段**：利用采样的样本计算 PPO Clipped Loss 和 Value Loss，通过多轮迭代梯度更新（Epochs）来更新策略参数。
 
 ---
@@ -167,9 +171,9 @@ PPO 训练是一个两阶段交替过程：
 ### 讲解
 
 本页分析了 AlpacaFarm 中 PPO 的**损失计算（Loss Computation）**代码实现：
-- 在代码中，Clip range $\epsilon$ 设定为 `0.2`。
+- 在代码中，Clip range $`\epsilon`$ 设定为 `0.2`。
 - 同时计算 Policy Loss 与 Value Loss：
-  - `policy_loss`：计算 $r_t(\theta) A_t$ 与其 Clipped 版本在 $\pm 0.2$ 之间的最小值。
+  - `policy_loss`：计算 $`r_t(\theta) A_t`$ 与其 Clipped 版本在 $`\pm 0.2`$ 之间的最小值。
   - `value_loss`：用于更新 Critic 价值网络，使其能够更准确地预测每个状态的期望收益（Baseline）。
 
 ---
@@ -182,10 +186,10 @@ PPO 训练是一个两阶段交替过程：
 
 本页展示了 **Rollout（采样阶段）** 的多模型组织架构。
 在标准的 PPO 语言模型训练中，为了稳定训练，内存中通常需要同时加载四个模型：
-1. **Policy (策略网络, $\pi_\theta$)**：需要训练的活跃模型，用于采样动作并更新参数。
-2. **Reference (参考网络, $\pi_{ref}$)**：冻结参数的基座模型（如 SFT 模型），用于计算 KL 惩罚，防止策略偏离太远。
-3. **Value (价值网络/评分网络, $V$)**：用于预测当前中间状态的 Value 值，计算优势 Advantage。
-4. **Reward (奖励网络, $RM$)**：用于对最终生成的 Completion 进行打分。
+1. **Policy (策略网络, $`\pi_\theta`$)**：需要训练的活跃模型，用于采样动作并更新参数。
+2. **Reference (参考网络, $`\pi_{ref}`$)**：冻结参数的基座模型（如 SFT 模型），用于计算 KL 惩罚，防止策略偏离太远。
+3. **Value (价值网络/评分网络, $`V`$)**：用于预测当前中间状态的 Value 值，计算优势 Advantage。
+4. **Reward (奖励网络, $`RM`$)**：用于对最终生成的 Completion 进行打分。
 > [!WARNING]
 > **显存灾难**：在分布式训练中，这四个模型会占用极其庞大的 GPU 显存。如果要训练 70B 的模型，四模型并行会给整个分布式架构（如 FSDP/Megatron）带来毁灭性的内存与显卡存活压力。
 
@@ -199,8 +203,10 @@ PPO 训练是一个两阶段交替过程：
 
 本页深入讲解了**奖励塑造（Reward Shaping）与 KL 剪切（KL Clipping）**的工程细节。
 - **逐 Token KL 惩罚**：为了防止模型走向“Goodhart 陷阱”（刷高 RM 评分但失去逻辑），我们在最终奖励中混入策略网络与参考网络之间的 KL 散度：
-  $$\text{Adjusted Reward} = R(x, y) - \beta \sum_{t} \left( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{ref}(y_t \mid x, y_{<t}) \right)$$
-- **KL Clipping 实践**：在 AlpacaFarm 等实操中，当 $\log \pi_\theta(y_t) < \log \pi_{ref}(y_t)$ 时（即新策略相比参考网络而言，分配给这个 Token 的概率更小），我们会选择剪切（Clip）这个 KL 惩罚值。
+  ```math
+  \text{Adjusted Reward} = R(x, y) - \beta \sum_{t} \left( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{ref}(y_t \mid x, y_{<t}) \right)
+  ```
+- **KL Clipping 实践**：在 AlpacaFarm 等实操中，当 $`\log \pi_\theta(y_t) < \log \pi_{ref}(y_t)`$ 时（即新策略相比参考网络而言，分配给这个 Token 的概率更小），我们会选择剪切（Clip）这个 KL 惩罚值。
   - **直觉**：这能极大地提升训练稳定性。如果模型因为某些突变概率暴跌，Clipped KL 可以防止 KL 惩罚值发散至无穷大，从而避免训练崩溃。
 
 ---
@@ -212,11 +218,13 @@ PPO 训练是一个两阶段交替过程：
 ### 讲解
 
 本页详细剖析了**广义优势估计（Generalized Advantage Estimate, GAE）**的应用。
-- 传统的 GAE 依靠超参数 $\gamma$（折扣因子）和 $\lambda$（偏差-方差折中因子）来平滑优势计算。
-- **有趣的行业事实**：在 LLM 的 Bandit 设定（单步大决策）中，我们通常将 $\gamma = 1.0$ 和 $\lambda = 1.0$。
+- 传统的 GAE 依靠超参数 $`\gamma`$（折扣因子）和 $`\lambda`$（偏差-方差折中因子）来平滑优势计算。
+- **有趣的行业事实**：在 LLM 的 Bandit 设定（单步大决策）中，我们通常将 $`\gamma = 1.0`$ 和 $`\lambda = 1.0`$。
   - 此时，优势计算简化为了：
-    $$A_t = G_t - V(s_t)$$
-    其中 $G_t$ 是从当前时刻到生成结束的总回报（Reward-to-go），而 $V(s_t)$ 是由价值网络（Critic）评估的当前基线期望。
+    ```math
+    A_t = G_t - V(s_t)
+    ```
+    其中 $`G_t`$ 是从当前时刻到生成结束的总回报（Reward-to-go），而 $`V(s_t)`$ 是由价值网络（Critic）评估的当前基线期望。
 
 ---
 
@@ -260,9 +268,11 @@ PPO 训练是一个两阶段交替过程：
 GRPO 是 DeepSeek 团队在其 DeepSeekMath (2024) 论文中提出的创新算法。
 - **核心机制**：
   1. **彻底移除了价值模型（Value Network / Critic）**，消除了这部分昂贵的显存和参数更新负担。
-  2. **群组采样（Group Sampling）**：对于同一个 Prompt，模型并行采样 $G$ 个不同的 Completion（通常 $G = 4$ 到 $16$）。
+  2. **群组采样（Group Sampling）**：对于同一个 Prompt，模型并行采样 $`G`$ 个不同的 Completion（通常 $`G = 4`$ 到 $`16`$）。
   3. **基于群组 Z 分数计算优势（Z-score within group）**：
-     $$A_i = \frac{r_i - \text{mean}(\mathbf{r})}{\text{std}(\mathbf{r}) + \epsilon}$$
+     ```math
+     A_i = \frac{r_i - \text{mean}(\mathbf{r})}{\text{std}(\mathbf{r}) + \epsilon}
+     ```
      直接用这批 Completion 的奖励均值和标准差对其进行归一化，作为优势估计值。
 - **直觉**：在同一个 Prompt 下，相比同伴更好的生成会被加强（正优势），更差的会被惩罚（负优势）。在线下更新时，这等价于带有 group 归一化奖励的策略梯度算法（Policy Gradient with Group-Normalized Rewards）。
 
@@ -323,10 +333,12 @@ advantages = (rewards - mean) / (std + 1e-4)
 
 主讲人引导我们开始对 GRPO 的核心机制进行严谨的数学反思：
 - 在强化学习经典著作（Sutton & Barto）中，**基线（Baseline）** 的引入是为了在不引入偏置（Bias）的前提下降低方差。
-- 理论上，我们可以从奖励 $R(z)$ 中减去**任何与动作 $z$ 无关、仅与状态 $s$ 相关的量 $b(s)$**。即：
-  $$\mathbb{E} \left[ (R(z) - b(s)) \nabla_\theta \log p_\theta(z) \right] = \mathbb{E} \left[ R(z) \nabla_\theta \log p_\theta(z) \right]$$
-  因为 $\mathbb{E}[b(s) \nabla \log p_\theta(z)] = b(s) \mathbb{E}[\nabla \log p_\theta(z)] = b(s) \cdot 0 = 0$。
-- **追问**：GRPO 的优势计算公式中，不仅减去了均值（这可以看作一个依赖状态 $s$ 的群组 Baseline），还**除以了标准差 $\text{std}(\mathbf{r})$**。这真的符合无偏基线的要求吗？
+- 理论上，我们可以从奖励 $`R(z)`$ 中减去**任何与动作 $`z`$ 无关、仅与状态 $`s`$ 相关的量 $`b(s)`$**。即：
+  ```math
+  \mathbb{E} \left[ (R(z) - b(s)) \nabla_\theta \log p_\theta(z) \right] = \mathbb{E} \left[ R(z) \nabla_\theta \log p_\theta(z) \right]
+  ```
+  因为 $`\mathbb{E}[b(s) \nabla \log p_\theta(z)] = b(s) \mathbb{E}[\nabla \log p_\theta(z)] = b(s) \cdot 0 = 0`$。
+- **追问**：GRPO 的优势计算公式中，不仅减去了均值（这可以看作一个依赖状态 $`s`$ 的群组 Baseline），还**除以了标准差 $`\text{std}(\mathbf{r})`$**。这真的符合无偏基线的要求吗？
 
 ---
 
@@ -337,10 +349,10 @@ advantages = (rewards - mean) / (std + 1e-4)
 ### 讲解
 
 本页提出了刘等人在 2025 年的研究（“Understanding R1-Zero-like training: A critical perspective” / 关联于“Dr. GRPO”）。
-- **GRPO 的数学偏置问题**：由于在优势估计中除以了群组标准差 $\text{std}(\mathbf{r})$，而标准差本身是由采样出的所有动作奖励共同决定的，这使得分母与具体的样本动作产生了非线性的交织。在数学上，**这不再是一个“有效基线”，它破坏了策略梯度估计的无偏性（Unbiasedness）**。
+- **GRPO 的数学偏置问题**：由于在优势估计中除以了群组标准差 $`\text{std}(\mathbf{r})`$，而标准差本身是由采样出的所有动作奖励共同决定的，这使得分母与具体的样本动作产生了非线性的交织。在数学上，**这不再是一个“有效基线”，它破坏了策略梯度估计的无偏性（Unbiasedness）**。
 - **修正方案（Unbiased version of GRPO）**：
   - 转向 **RLOO (REINFORCE Leave-One-Out)** 的设计。
-  - 在计算样本 $i$ 的优势时，均值基线**剔除自身**，仅计算除了 $i$ 之外的其他 $j \neq i$ 个同伴的均值。这样，基线与当前的动作 $i$ 实现了数学上的完全独立。
+  - 在计算样本 $`i`$ 的优势时，均值基线**剔除自身**，仅计算除了 $`i`$ 之外的其他 $`j \neq i`$ 个同伴的均值。这样，基线与当前的动作 $`i`$ 实现了数学上的完全独立。
   - 移除分母的标准差归一化，或者使用全局平滑标准差，以恢复梯度的无偏性，使策略梯度更新更加稳健。
 
 ---
@@ -353,9 +365,11 @@ advantages = (rewards - mean) / (std + 1e-4)
 
 本页详细剖析了 GRPO 带来的**长度偏置（Length Biases）**和**题目难度偏置**。
 - **长度偏置的成因**：
-  在 GRPO 的实际实现中，通常会将整个 Completion 的 Loss 除以其生成的 Token 长度 $L$ 进行归一化。
-  $$L_{GRPO}(\theta) \propto \sum_{i} \frac{1}{L_i} \sum_{t} \log \pi_\theta(y_{i,t}) A_i$$
-  在这种情况下，如果一个 Completion 的 Reward 很差（例如 $A_i < 0$），但其长度 $L_i$ 被拉得极长，那么它分摊到每个 Token 上的负梯度（惩罚）就会被分母 $L_i$ **极其严重地稀释**。相反，短小而错误的回答会受到极严厉的惩罚。
+  在 GRPO 的实际实现中，通常会将整个 Completion 的 Loss 除以其生成的 Token 长度 $`L`$ 进行归一化。
+  ```math
+  L_{GRPO}(\theta) \propto \sum_{i} \frac{1}{L_i} \sum_{t} \log \pi_\theta(y_{i,t}) A_i
+  ```
+  在这种情况下，如果一个 Completion 的 Reward 很差（例如 $`A_i < 0`$），但其长度 $`L_i`$ 被拉得极长，那么它分摊到每个 Token 上的负梯度（惩罚）就会被分母 $`L_i`$ **极其严重地稀释**。相反，短小而错误的回答会受到极严厉的惩罚。
   - **后果**：这等同于在数学上**隐式地鼓励模型生成冗长、啰嗦的错误答案（有利于稀释负向更新惩罚）**。这就是 R1-Zero 在训练后期文本长度急剧膨胀的隐秘数学根源。
 - **修复措施**：
   Dr. GRPO (Liu et al., 2025) 提出**废除基于单个轨迹长度的归一化**，改为使用群组中的固定常数或全局常量对 Loss 进行缩放。这不仅彻底消除了长度偏置，还使模型学会了用更高效、精炼的 CoT 解决问题。
@@ -465,7 +479,7 @@ advantages = (rewards - mean) / (std + 1e-4)
   3. **非推理能力退化**：由于纯 RL 仅优化推理，模型在普通文科写作、创意表达等方面的能力发生了严重的灾难性遗忘。
 - **DeepSeek-R1 的改进路线**：
   R1 引入了多阶段（Multi-stage）的对齐框架：
-  `DeepSeek-V3` $\to$ `推理 SFT 引导` $\to$ `推理 GRPO 强化（加入语言一致性奖励）` $\to$ `通用 SFT & RLHF`。
+  `DeepSeek-V3` $`\to`$ `推理 SFT 引导` $`\to`$ `推理 GRPO 强化（加入语言一致性奖励）` $`\to`$ `通用 SFT & RLHF`。
 
 ---
 
@@ -529,7 +543,7 @@ advantages = (rewards - mean) / (std + 1e-4)
 ### 讲解
 
 这一页展示了 DeepSeek-R1 最终的性能结果。
-- 在代表编程竞赛难度的 Codeforces 上，R1 击败了 $96.3\%$ 的人类选手。
+- 在代表编程竞赛难度的 Codeforces 上，R1 击败了 $`96.3\%`$ 的人类选手。
 - 在数学竞赛 AIME 上，R1 取得了惊人的分数，完全平替甚至超越了 o1 的表现，且训练算力成本仅为美国顶尖实验室的几分之一。
 
 ---
@@ -615,8 +629,10 @@ advantages = (rewards - mean) / (std + 1e-4)
 本页深入解析了 **Kimi k1.5 的强化学习算法**。
 Kimi 的 RL 算法与 DeepSeek 基于 GAE/Z-Score 的优势函数不同，它是从 **DPO (直接偏好优化)** 的数学推导演进而来。
 - **数学机制**：
-  基于非参数化的假设求解出隐含的 Reward $r$，并在在线更新中采用一个**平方损失（Squared Loss）**作为代理函数：
-  $$L_{Kimi}(\theta) \propto \mathbb{E} \left[ \left( \log \frac{\pi_\theta(y \mid x)}{\pi_{ref}(y \mid x)} - \eta R(x, y) \right)^2 \right]$$
+  基于非参数化的假设求解出隐含的 Reward $`r`$，并在在线更新中采用一个**平方损失（Squared Loss）**作为代理函数：
+  ```math
+  L_{Kimi}(\theta) \propto \mathbb{E} \left[ \left( \log \frac{\pi_\theta(y \mid x)}{\pi_{ref}(y \mid x)} - \eta R(x, y) \right)^2 \right]
+  ```
   配合策略梯度和正则化，这等价于在对数概率空间中对可验证奖励进行在线的 **Mirror Descent（镜像下降）** 更新。
 - **优势**：该损失函数自带天然的相对熵约束，其梯度更新在没有显式 Critic 网络的情况下极其平稳，规避了 PPO 价值网络不稳定的硬伤。
 
@@ -631,8 +647,10 @@ Kimi 的 RL 算法与 DeepSeek 基于 GAE/Z-Score 的优势函数不同，它是
 本页讲解了 Kimi 团队在解决**长度膨胀**问题上的设计——**长度控制奖励（Length Control in Kimi）**。
 由于 DPO/OMD 的数学结构同样容易使模型走向“啰嗦以换取稳定性”，Kimi 团队在训练中后期引入了群组内的**长度惩罚因子**：
 - 在每个 Batch 的 Rollout 群组中，计算 Completion 的长度均值，对超出平均长度的 Completion 施加惩罚：
-  $$\text{Length Reward} = \lambda \cdot \frac{L_i - \text{mean}(\mathbf{L})}{\text{std}(\mathbf{L})}$$
-  - $\lambda$ 设定在 $[-0.5, 0.5]$ 之间。
+  ```math
+  \text{Length Reward} = \lambda \cdot \frac{L_i - \text{mean}(\mathbf{L})}{\text{std}(\mathbf{L})}
+  ```
+  - $`\lambda`$ 设定在 $`[-0.5, 0.5]`$ 之间。
   - **规则 1**：对于正确回答，模型被积极引导去寻找最简捷、短小的步骤（Incentivized to be short）。
   - **规则 2**：对于错误回答，模型受到的负面惩罚必须远远小于对于短而错回答的惩罚。
 - **关键细节**：团队建议仅在**训练后期**开启此长度惩罚。如果在一开始就强加长度限制，会阻碍模型在早期进行充分的发散性逻辑搜索，导致推理性能发生缩水。
@@ -648,7 +666,7 @@ Kimi 的 RL 算法与 DeepSeek 基于 GAE/Z-Score 的优势函数不同，它是
 本页补充了 Kimi K1.5 的其他工程微调细节：
 - **课程学习（Curriculum Learning）**：
   - 题目按照难度打上标签，训练从简单题目起步，逐步过度到困难题。
-  - **动态采样**：采样概率与题目的成功率成反比，即 $P(\text{sample}) \propto (1 - \text{success\_rate})$。已经被 RL 彻底攻克的题目会逐步淡出采样库，把算力集中在模型一直做不对的硬骨头上。
+  - **动态采样**：采样概率与题目的成功率成反比，即 $`P(\text{sample}) \propto (1 - \text{success\_rate})`$。已经被 RL 彻底攻克的题目会逐步淡出采样库，把算力集中在模型一直做不对的硬骨头上。
 - **奖励塑造的泛化**：
   - **代码题**：不仅看代码有没有得出标准输出，还通过 LLM 自动生成更多的隐藏边界测试用例（Edge Cases）去动态运行代码，以彻底排除“Hardcoded 答案作弊”的风险。
   - **数学题**：训练一个专门负责判定数学步骤等价性（Answer Equivalence Checks）的数学裁判模型。
@@ -738,7 +756,7 @@ Kimi 的 RL 算法与 DeepSeek 基于 GAE/Z-Score 的优势函数不同，它是
 
 本页展示了 Qwen 3 的后训练整体流程大图：
 - 在基础推理能力（Math/Code/STEM）的提升上，其训练路径与 R1 一致：
-  `SFT 引导` $\to$ `推理 RL (GRPO)` $\to$ `通用 SFT & RLHF对齐` $\to$ `蒸馏下游`。
+  `SFT 引导` $`\to`$ `推理 RL (GRPO)` $`\to`$ `通用 SFT & RLHF对齐` $`\to`$ `蒸馏下游`。
 - 图中特别强调，为了让模型具备通用交互力，在推理强化之后，必须补充一个通用 RLHF 步骤，将纯粹长思维链模型转换为能够流畅对话的多功能助手。
 
 ---
@@ -780,7 +798,7 @@ Kimi 的 RL 算法与 DeepSeek 基于 GAE/Z-Score 的优势函数不同，它是
 ### 讲解
 
 这一页讨论了 **测试时缩放（Test-time Scaling / 推理期缩放）** 的规律。
-- 随着推理阶段对单个问题分配的计算资源（如采样次数 $N$ 或搜寻路径数）增加，推理性能会呈现明显的 Scaling 趋势。
+- 随着推理阶段对单个问题分配的计算资源（如采样次数 $`N`$ 或搜寻路径数）增加，推理性能会呈现明显的 Scaling 趋势。
 - Qwen 3 充分利用了这一点，在面对极难题目时，允许模型在推理时拉长思维深度，从而以时间换取解答的正确率。
 
 ---

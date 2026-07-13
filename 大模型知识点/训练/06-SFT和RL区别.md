@@ -71,9 +71,9 @@ answer: "Attention 可以理解为..."
 
 训练目标就是 next-token cross entropy：
 
-$$
+```math
 \mathcal{L}_{SFT} = - \sum_t \log \pi_\theta(y_t | x, y_{<t})
-$$
+```
 
 含义：
 
@@ -136,14 +136,14 @@ PPO 在 LLM RLHF 里通常涉及 4 个模型：
 
 PPO 的简化目标：
 
-$$
+```math
 \mathcal{L}^{PPO} = \mathbb{E}\left[\min(r_t A_t, \text{clip}(r_t,1-\epsilon,1+\epsilon)A_t)\right]
-$$
+```
 
 其中：
 
-- $r_t$：新旧 policy 生成同一个 token 的概率比。
-- $A_t$：这个 token 的 advantage。
+- $`r_t`$：新旧 policy 生成同一个 token 的概率比。
+- $`A_t`$：这个 token 的 advantage。
 - clip：限制单次更新幅度。
 
 PPO 的痛点：
@@ -169,7 +169,7 @@ DPO 不显式训练 reward model，也不跑 PPO rollout，而是直接优化：
 
 常见公式：
 
-$$
+```math
 \mathcal{L}_{DPO} =
 -\mathbb{E}
 \left[
@@ -180,13 +180,13 @@ $$
 \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}
 \right)
 \right]
-$$
+```
 
 直觉：
 
 - 如果 chosen 相对 reference 的概率提升更大，loss 变小。
 - 如果 rejected 被提升得更多，loss 变大。
-- $\beta$ 控制偏离 reference 的强度，类似 KL 温度。
+- $`\beta`$ 控制偏离 reference 的强度，类似 KL 温度。
 
 ### 6. DPO 相比 PPO 的改进
 

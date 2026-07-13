@@ -223,7 +223,7 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 
 ### 讲解
 引自论文 *[Wang+ 2023]* 的实验：
-该表对比了主流指令数据在以下几个指标上的表现：实例数量（# Instances）、平均多轮对话数（$\bar{N}_{\text{rounds}}$）、平均 Prompt 长度（$\bar{L}_{\text{prompt}}$）、平均回复 Completion 长度（$\bar{L}_{\text{completion}}$）。
+该表对比了主流指令数据在以下几个指标上的表现：实例数量（# Instances）、平均多轮对话数（$`\bar{N}_{\text{rounds}}`$）、平均 Prompt 长度（$`\bar{L}_{\text{prompt}}`$）、平均回复 Completion 长度（$`\bar{L}_{\text{completion}}`$）。
 - **观察**：
   - 传统的学术数据（如 Flan V2）的 Completion 平均长度仅为 **31.2** 个 Token，极其短促。
   - Dolly 和 Alpaca 的 Completion 长度上升到了 **60-90** 个 Token。
@@ -240,8 +240,8 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 ### 讲解
 引自论文 *[Dubois+ 2023] (AlpacaFarm)* 的研究：
 无论是在人类评测（Human Evaluation）还是在大模型充当裁判（GPT-based Evaluation）的偏好测试中，都存在极其明显的**“长度与格式偏见”（Length/Style Bias）**：
-- **例1（列表偏好）**：如果模型的回复中使用了无序列表（Lists）或排版工整的要点，人类和 GPT-4 裁判对其打出高分的偏好比例显著超过 $60\%$。
-- **例2（长度偏好）**：如果一个模型的 Completion 长度明显更长，被判定为“胜出（Win）”的概率随长度增加而飙升（偏好比例高达 $70\%-80\%$）。
+- **例1（列表偏好）**：如果模型的回复中使用了无序列表（Lists）或排版工整的要点，人类和 GPT-4 裁判对其打出高分的偏好比例显著超过 $`60\%`$。
+- **例2（长度偏好）**：如果一个模型的 Completion 长度明显更长，被判定为“胜出（Win）”的概率随长度增加而飙升（偏好比例高达 $`70\%-80\%`$）。
 - **警示**：这意味着**模型只需要在 SFT 数据中学会如何“把话写长、多用列表”，就能在各种 Chat 评估排行榜上刷出高分**，而其核心逻辑和解题能力并没有实质提升。
 
 ---
@@ -283,7 +283,7 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 
 - **Schulman (2023) [OpenAI RLHF 负责人] 的行为克隆（Behavior Cloning）观点 (左图)**：
   - 预训练使模型参数中建立了一个“知识图谱（Knowledge Graph）”，对每个知识边有不同的置信度。
-  - SFT 的本质是“行为克隆”。如果我们给出的 SFT 目标回复中包含了基底模型知识图谱中本不存在（或置信度极低）的“冷门事实 $A$”，SFT 梯度会强行修正模型参数，逼迫模型“假装自己知道 $A$ 并自信地说出来”。
+  - SFT 的本质是“行为克隆”。如果我们给出的 SFT 目标回复中包含了基底模型知识图谱中本不存在（或置信度极低）的“冷门事实 $`A`$”，SFT 梯度会强行修正模型参数，逼迫模型“假装自己知道 $`A`$ 并自信地说出来”。
   - 这种训练等同于**训练模型去“撒谎和过度自信”**。当模型在推理阶段面对其他不确定的长尾知识时，它会习惯性地输出极度逼真的假事实（幻觉）。
 
 - **Gekhman (2023) 实验验证 (右图)**：
@@ -350,7 +350,7 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 - **WildChat**：包含了来自真实用户与 ChatGPT 交互的 100 万条公开日志。由于是真实日志，里面充斥着各种极具创造性的对抗性话题和越狱尝试。
 - **WildTeaming 框架 (右图)**：
   - **Step 1 (MINE)**：在 WildChat 中，使用 LlamaGuard 等安全分类模型，自动挖掘出人类写出来的最新越狱战术（ITW Jailbreak Tactics）。
-  - **Step 2 (COMPOSE)**：使用 GPT-4 自动将挖掘出的“越狱战术 $PR_h$”与“常规有害查询 $M_{\text{target}}$”融合，合成出数万个难度极高的对抗性 Prompt。用这批合成的对抗 Prompt 训练模型进行拒绝，能极大提高模型在野外的防御力。
+  - **Step 2 (COMPOSE)**：使用 GPT-4 自动将挖掘出的“越狱战术 $`PR_h`$”与“常规有害查询 $`M_{\text{target}}`$”融合，合成出数万个难度极高的对抗性 Prompt。用这批合成的对抗 Prompt 训练模型进行拒绝，能极大提高模型在野外的防御力。
 
 ---
 
@@ -438,11 +438,15 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 ### 讲解
 这页给出了 SFT 与 RLHF 在数学建模上的根本区别：
 - **Imitation (SFT) 监督微调**：
-  $$\text{Fit } \hat{p}(y \mid x) \approx p^*(y \mid x) \text{ for some reference distribution } p^*(y \mid x)$$
-  - **本质**：拟合一个由高水平人类或强模型表现出的参考概率分布 $p^*$。这纯粹是一个生成式建模问题，模型能达到的高度完全受限于参考分布 $p^*$ 的质量。
+  ```math
+  \text{Fit } \hat{p}(y \mid x) \approx p^*(y \mid x) \text{ for some reference distribution } p^*(y \mid x)
+  ```
+  - **本质**：拟合一个由高水平人类或强模型表现出的参考概率分布 $`p^*`$。这纯粹是一个生成式建模问题，模型能达到的高度完全受限于参考分布 $`p^*`$ 的质量。
 - **Optimization (RLHF) 强化学习**：
-  $$\text{Find } \hat{p}(y \mid x) \text{ such that } \max_{p} \mathbb{E}_p [R(y, x)] \text{ for a reward } R(y, x)$$
-  - **本质**：将大模型视作一个决策策略（Policy），在给定的输入 $x$ 下，动作（生成 Token 序列 $y$）必须**最大化奖励函数 $R(y, x)$ 的期望值**。
+  ```math
+  \text{Find } \hat{p}(y \mid x) \text{ such that } \max_{p} \mathbb{E}_p [R(y, x)] \text{ for a reward } R(y, x)
+  ```
+  - **本质**：将大模型视作一个决策策略（Policy），在给定的输入 $`x`$ 下，动作（生成 Token 序列 $`y`$）必须**最大化奖励函数 $`R(y, x)`$ 的期望值**。
   - **突破**：这从根本上摆脱了“模仿”的限制，模型可以通过在强化学习环境中自行搜索与优化，产出比 SFT 样本甚至比人类标注员写得更好的回复。
 
 ---
@@ -594,7 +598,7 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 - **数据分析**：
   - 标注群体往往以特定国家（如美欧）、特定信仰（Protestant/Catholic 等）、特定学历（高学历群体）为主（左侧表）。
   - 右侧表测试了不同模型（如 AI21, OpenAI）的输出结果与不同宗教背景的人群的契合度。
-  - **观察**：OpenAI 模型的偏好极度向美欧的 Protestant/Catholic 群体倾斜（契合度超 $0.75$），而与 Buddhist、Hindu 等非西方宗教背景人群的偏好契合度显著偏低。
+  - **观察**：OpenAI 模型的偏好极度向美欧的 Protestant/Catholic 群体倾斜（契合度超 $`0.75`$），而与 Buddhist、Hindu 等非西方宗教背景人群的偏好契合度显著偏低。
 - **启示**：模型并没有绝对的“普世真理偏好”，你雇佣什么人点赞，大模型就会继承这个群体的世界观和道德偏好。
 
 ---
@@ -607,8 +611,8 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 引自论文 *[Hosking, Blunsom, Bartolo 2024]*：
 该图用热力图（Heatmap）展示了普通众包工人（Crowdsourced Annotators）与领域专家（Expert Annotators）在面对同一批模型回复时的**纠错误差率（Error Rate Difference）**：
 - **核心发现**：
-  - **在 Assertiveness（自信/说服力）维度**：当模型的回复表现得极度自信、语气斩钉截铁（Assertiveness++）时，普通众包工人会发生严重的判断失误。他们会低估模型的不一致性（Inconsistency $-16.9\%$）和事实性错误（Factuality $-22.3\%$）。也就是说，**模型只要语气足够强硬自信，普通工人就会偏心判定其回答正确，即便里面全是胡说八道。**
-  - **在 Complexity（复杂性）维度**：当回复的逻辑非常复杂冗长时，普通工人发现事实性错误的能力会暴跌 $14.3\%$。
+  - **在 Assertiveness（自信/说服力）维度**：当模型的回复表现得极度自信、语气斩钉截铁（Assertiveness++）时，普通众包工人会发生严重的判断失误。他们会低估模型的不一致性（Inconsistency $`-16.9\%`$）和事实性错误（Factuality $`-22.3\%`$）。也就是说，**模型只要语气足够强硬自信，普通工人就会偏心判定其回答正确，即便里面全是胡说八道。**
+  - **在 Complexity（复杂性）维度**：当回复的逻辑非常复杂冗长时，普通工人发现事实性错误的能力会暴跌 $`14.3\%`$。
 - **结论**：为了对齐深度推理，我们必须依赖专业的 Expert，而不能依赖普通外包工。
 
 ---
@@ -622,7 +626,7 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 - **左图（系统级相关性）**：
   GPT-4 对模型胜率的评估（Simulated Win-rate）与人类评估（Human Win-rate）呈现出**近乎完美的线性相关性**（皮尔逊/斯皮尔曼相关系数高达 **0.98**）。这表明在宏观系统评测上，GPT-4 完全可以平替人类。
 - **右图（微观一致性）**：
-  横轴为每千次偏好评判的美元成本，纵轴为与人类 mode 判定的一致性。GPT-4 充当裁判的一致性率（约 $64\%-65\%$）已经完美达到了人类标注员之间的互信度上限（Inter-annotator Agreement），且**成本比招募 Expert 便宜了数个数量级**。
+  横轴为每千次偏好评判的美元成本，纵轴为与人类 mode 判定的一致性。GPT-4 充当裁判的一致性率（约 $`64\%-65\%`$）已经完美达到了人类标注员之间的互信度上限（Inter-annotator Agreement），且**成本比招募 Expert 便宜了数个数量级**。
 
 ---
 
@@ -695,9 +699,9 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 
 ### 讲解
 再次重温数学定义，为 PPO 和 DPO 的推导做铺垫：
-- SFT 只要求模型模仿参考策略 $p^*$ 的分布。
-- RLHF 要求我们在给定的 Prompt 空间下，找到一个策略分布 $\hat{p}(y \mid x)$，它能最大化由奖励模型 $R(y, x)$ 评估的期望 Reward。
-- 难点在于，大模型的动作空间（Vocabulary 词汇表大小 $V$，输出序列长度 $T$）是指数级庞大的，直接做全空间期望积分是不可行的，必须使用蒙特卡洛策略梯度方法进行优化。
+- SFT 只要求模型模仿参考策略 $`p^*`$ 的分布。
+- RLHF 要求我们在给定的 Prompt 空间下，找到一个策略分布 $`\hat{p}(y \mid x)`$，它能最大化由奖励模型 $`R(y, x)`$ 评估的期望 Reward。
+- 难点在于，大模型的动作空间（Vocabulary 词汇表大小 $`V`$，输出序列长度 $`T`$）是指数级庞大的，直接做全空间期望积分是不可行的，必须使用蒙特卡洛策略梯度方法进行优化。
 
 ---
 
@@ -708,18 +712,24 @@ SFT 数据集在表层和深层存在着许多不同参数的变体：
 ### 讲解
 在语言模型中运行 PPO（以 InstructGPT 为例），其优化的核心目标函数（Objective）设计如下：
 
-$$\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim D_{\pi_\phi^{\text{RL}}}} \left[ r_\theta(x, y) - \beta \log \left( \frac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)} \right) \right] + \gamma \mathbb{E}_{x \sim D_{\text{pretrain}}} [\log(\pi_\phi^{\text{RL}}(x))]$$
+```math
+\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim D_{\pi_\phi^{\text{RL}}}} \left[ r_\theta(x, y) - \beta \log \left( \frac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)} \right) \right] + \gamma \mathbb{E}_{x \sim D_{\text{pretrain}}} [\log(\pi_\phi^{\text{RL}}(x))]
+```
 
 这虽然看起来无害，但它在数学上融合了三个极其重要的约束设计：
-1. **$r_\theta(x, y)$**：当前 RL 策略网络对 Prompt $x$ 生成的 Completion $y$ 从奖励模型（Reward Model）获得的原始 Reward 得分。
+1. **$`r_\theta(x, y)`$**：当前 RL 策略网络对 Prompt $`x`$ 生成的 Completion $`y`$ 从奖励模型（Reward Model）获得的原始 Reward 得分。
 2. **KL 散度惩罚项（中括号内）**：
-   $$\text{KL Penalty} = -\beta \log \left( \frac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)} \right)$$
-   - **作用**：随着强化学习不断推进，策略网络 $\pi^{\text{RL}}$ 会不断调整参数以刷高奖励分。如果不加限制，模型很快会找到奖励模型参数在未覆盖区域的漏洞（Reward Hacking），输出满是漏洞的乱码废话。
-   - **约束**：在每一个 Token 上施加 KL 惩罚，约束当前策略 $\pi^{\text{RL}}$ 不要偏离初始 SFT 基底模型 $\pi^{\text{SFT}}$ 太远，从而保护模型的自然语言生成逻辑不崩溃。
+   ```math
+   \text{KL Penalty} = -\beta \log \left( \frac{\pi_\phi^{\text{RL}}(y \mid x)}{\pi^{\text{SFT}}(y \mid x)} \right)
+   ```
+   - **作用**：随着强化学习不断推进，策略网络 $`\pi^{\text{RL}}`$ 会不断调整参数以刷高奖励分。如果不加限制，模型很快会找到奖励模型参数在未覆盖区域的漏洞（Reward Hacking），输出满是漏洞的乱码废话。
+   - **约束**：在每一个 Token 上施加 KL 惩罚，约束当前策略 $`\pi^{\text{RL}}`$ 不要偏离初始 SFT 基底模型 $`\pi^{\text{SFT}}`$ 太远，从而保护模型的自然语言生成逻辑不崩溃。
 3. **预训练梯度混入项（Ptx Term，最后一项）**：
-   $$\gamma \mathbb{E}_{x \sim D_{\text{pretrain}}} [\log(\pi_\phi^{\text{RL}}(x))]$$
+   ```math
+   \gamma \mathbb{E}_{x \sim D_{\text{pretrain}}} [\log(\pi_\phi^{\text{RL}}(x))]
+   ```
    - 在计算强化学习梯度的同时，混入预训练自回归的负对数似然梯度。
-   - **作用**：防止模型陷入严重的“对齐退化”，强行稳住模型在常规 NLP objective 上的语言功底。当 $\gamma$ 设为 0 时，该项被取消。
+   - **作用**：防止模型陷入严重的“对齐退化”，强行稳住模型在常规 NLP objective 上的语言功底。当 $`\gamma`$ 设为 0 时，该项被取消。
 
 ---
 
@@ -730,10 +740,12 @@ $$\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim D_{\pi_\phi^{\text{RL}}}} \lef
 ### 讲解
 这页给出了更底层的理论支撑（引自 *[Stiennon et al. 2020]*）：
 - **奖励模型 (RM) 的训练损失函数**：
-  偏好训练数据为三元组 $(x, y_0, y_1, i)$，其中 $x$ 为 Prompt，$y_0$ 和 $y_1$ 为两个模型回复，$i \in \{0, 1\}$ 表示哪个更好（假设 $y_i$ 为胜出者，$y_{1-i}$ 为失败者）。
+  偏好训练数据为三元组 $`(x, y_0, y_1, i)`$，其中 $`x`$ 为 Prompt，$`y_0`$ 和 $`y_1`$ 为两个模型回复，$`i \in \{0, 1\}`$ 表示哪个更好（假设 $`y_i`$ 为胜出者，$`y_{1-i}`$ 为失败者）。
   奖励模型的优化采用经典的 Bradley-Terry 偏好模型，其交叉熵 Loss 为：
-  $$\text{loss}(r_\theta) = -\mathbb{E}_{(x, y_0, y_1, i) \sim D} [\log(\sigma(r_\theta(x, y_i) - r_\theta(x, y_{1-i})))]$$
-  - **直觉**：拉大胜出者的得分 $r_\theta(x, y_i)$ 与失败者的得分 $r_\theta(x, y_{1-i})$ 之间的分差。
+  ```math
+  \text{loss}(r_\theta) = -\mathbb{E}_{(x, y_0, y_1, i) \sim D} [\log(\sigma(r_\theta(x, y_i) - r_\theta(x, y_{1-i})))]
+  ```
+  - **直觉**：拉大胜出者的得分 $`r_\theta(x, y_i)`$ 与失败者的得分 $`r_\theta(x, y_{1-i})`$ 之间的分差。
 - **关于 KL 散度约束的另外两个核心功能**：
   1. 它作为一种**熵的奖励（Entropy Bonus）**，鼓励 Policy 去积极探索更多样化的输出空间，防止模型在 RL 后期出现严重的“模式塌陷（Mode Collapse）”退化为只复读几句话。
   2. 确保 Policy 生成的输出概率与 RM 的分布距离在置信度以内，防止评估失准。
@@ -748,16 +760,24 @@ $$\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim D_{\pi_\phi^{\text{RL}}}} \lef
 大语言模型中的 PPO 极难调试，我们需要在概念上理清它的三个演进尝试：
 - **Attempt 1: Policy Gradients (策略梯度法 / REINFORCE)**：
   其计算公式为：
-  $$\nabla_\theta \mathbb{E}_{p_\theta} [R(z)] = \mathbb{E}_{p_\theta} [R(z) \nabla_\theta \log p_\theta(z)]$$
-  - **致命弱点**：**方差极高**（High Variance）。如果环境返回的 Reward $R(z)$ 的尺度波动很大，或者模型采样概率有一丝扰动，梯度方向就会发生剧烈抖动，导致训练直接发散崩溃。
+  ```math
+  \nabla_\theta \mathbb{E}_{p_\theta} [R(z)] = \mathbb{E}_{p_\theta} [R(z) \nabla_\theta \log p_\theta(z)]
+  ```
+  - **致命弱点**：**方差极高**（High Variance）。如果环境返回的 Reward $`R(z)`$ 的尺度波动很大，或者模型采样概率有一丝扰动，梯度方向就会发生剧烈抖动，导致训练直接发散崩溃。
 - **Attempt 2: TRPO (Trust Region Policy Optimization, 信赖域策略优化)**：
   - 为了稳住梯度更新，强行对每一次参数更新前后的策略分布设定置信限界：
-    $$\max_\theta \hat{\mathbb{E}}_t \left[ \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)} \hat{A}_t \right]$$
-    $$\text{subject to } \hat{\mathbb{E}}_t [\text{KL}[\pi_{\theta_{\text{old}}}(\cdot \mid s_t), \pi_\theta(\cdot \mid s_t)]] \le \delta$$
+    ```math
+    \max_\theta \hat{\mathbb{E}}_t \left[ \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)} \hat{A}_t \right]
+    ```
+    ```math
+    \text{subject to } \hat{\mathbb{E}}_t [\text{KL}[\pi_{\theta_{\text{old}}}(\cdot \mid s_t), \pi_\theta(\cdot \mid s_t)]] \le \delta
+    ```
   - **弱点**：计算二阶 Hessian 矩阵倒数和二阶导数极度耗费显存与计算时间，不适合百亿参数的 LLM。
 - **Attempt 3: PPO (Proximal Policy Optimization)**：
-  - 放弃二阶计算，改用最简易的“裁剪代理目标”（Clipped Surrogate Objective）来硬性截断更新比例，限制在 $[1-\epsilon, 1+\epsilon]$ 之间：
-    $$L(s, a, \theta_k, \theta) = \min \left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} A^{\pi_{\theta_k}}(s, a), \text{clip} \left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1 - \epsilon, 1 + \epsilon \right) A^{\pi_{\theta_k}}(s, a) \right)$$
+  - 放弃二阶计算，改用最简易的“裁剪代理目标”（Clipped Surrogate Objective）来硬性截断更新比例，限制在 $`[1-\epsilon, 1+\epsilon]`$ 之间：
+    ```math
+    L(s, a, \theta_k, \theta) = \min \left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)} A^{\pi_{\theta_k}}(s, a), \text{clip} \left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}, 1 - \epsilon, 1 + \epsilon \right) A^{\pi_{\theta_k}}(s, a) \right)
+    ```
   - **虽然 PPO 较 TRPO 简单，但在 LLM 训练中它依然非常 finicky（繁琐且不稳定）**，因为：
     - 它需要在显存中同时存放四个超大模型：**Actor Policy（需要训练的策略网络）、Critic Value Network（需要优化的价值评估网络）、Reference SFT Model（需要冻结以计算 KL 的参考网络）和 Reward Model（冻结的奖励模型）**。
     - 四大模型的存在对多卡显存和通信带宽造成了极致榨干，且 Actor 和 Critic 之间的学习率同步配合极难对齐。
@@ -802,16 +822,24 @@ $$\text{objective}(\phi) = \mathbb{E}_{(x,y) \sim D_{\pi_\phi^{\text{RL}}}} \lef
 ### 讲解
 这页给出了 DPO 优雅的数学起点。我们的目标依然是优化经典的 KL 散度约束最大化期望 Reward 问题：
 
-$$\max_{\pi} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi(y \mid x)} [r(x, y)] - \beta \mathbb{D}_{\text{KL}} [\pi(y \mid x) \parallel \pi_{\text{ref}}(y \mid x)]$$
+```math
+\max_{\pi} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi(y \mid x)} [r(x, y)] - \beta \mathbb{D}_{\text{KL}} [\pi(y \mid x) \parallel \pi_{\text{ref}}(y \mid x)]
+```
 
 1. 我们对动作概率和 KL 散度的概率分布展开写出：
-   $$\max_{\pi} \mathbb{E}_{x \sim \mathcal{D}} \left[ \mathbb{E}_{y \sim \pi(y \mid x)} \left[ r(x, y) - \beta \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \right) \right] \right]$$
-2. 做无约束优化，在非参数（Non-parametric）分布假设下，由于这是一个典型的凸优化问题，我们可以求出其全局最优解策略 $\pi_r(y \mid x)$ 的闭式解（Closed-form Solution）：
-   $$\pi_r(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp \left( \frac{1}{\beta} r(x, y) \right)$$
-   其中 $Z(x) = \sum_{y} \pi_{\text{ref}}(y \mid x) \exp \left( \frac{1}{\beta} r(x, y) \right)$ 是归一化的配分函数（Partition Function）。
+   ```math
+   \max_{\pi} \mathbb{E}_{x \sim \mathcal{D}} \left[ \mathbb{E}_{y \sim \pi(y \mid x)} \left[ r(x, y) - \beta \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \right) \right] \right]
+   ```
+2. 做无约束优化，在非参数（Non-parametric）分布假设下，由于这是一个典型的凸优化问题，我们可以求出其全局最优解策略 $`\pi_r(y \mid x)`$ 的闭式解（Closed-form Solution）：
+   ```math
+   \pi_r(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp \left( \frac{1}{\beta} r(x, y) \right)
+   ```
+   其中 $`Z(x) = \sum_{y} \pi_{\text{ref}}(y \mid x) \exp \left( \frac{1}{\beta} r(x, y) \right)`$ 是归一化的配分函数（Partition Function）。
 3. 关键步骤：**将最优策略等式取对数，反向求出 implied reward（隐含的奖励函数表达式）**：
-   $$r(x, y) = \beta \log \frac{\pi_r(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)$$
-   - **核心意义**：**任何一个对齐策略网络 $\pi_r$，都唯一、等价地对应着一个在数学上被最优化隐含的奖励函数 $r(x, y)$！**
+   ```math
+   r(x, y) = \beta \log \frac{\pi_r(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)
+   ```
+   - **核心意义**：**任何一个对齐策略网络 $`\pi_r`$，都唯一、等价地对应着一个在数学上被最优化隐含的奖励函数 $`r(x, y)`$！**
 
 ---
 
@@ -822,17 +850,23 @@ $$\max_{\pi} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi(y \mid x)} [r(x, y)] - \
 ### 讲解
 我们将推导出的 implied reward 代入之前 Bradley-Terry 偏好模型训练 RM 时的交叉熵损失中：
 
-$$\text{loss}(r_\theta) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} [\log \sigma(r_\theta(x, y_w) - r_\theta(x, y_l))]$$
+```math
+\text{loss}(r_\theta) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} [\log \sigma(r_\theta(x, y_w) - r_\theta(x, y_l))]
+```
 
 1. 代入 implied reward：
-   $$r_\theta(x, y_w) - r_\theta(x, y_l) = \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right)$$
-2. 我们惊人地发现，**常数项 $\beta \log Z(x)$ 在做差时被完全消去（Cancel out）了！** 也就是说，我们根本不需要去计算那个在工程上无法穷举的归一化求和 $Z(x)$！
+   ```math
+   r_\theta(x, y_w) - r_\theta(x, y_l) = \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right)
+   ```
+2. 我们惊人地发现，**常数项 $`\beta \log Z(x)`$ 在做差时被完全消去（Cancel out）了！** 也就是说，我们根本不需要去计算那个在工程上无法穷举的归一化求和 $`Z(x)`$！
 3. 代入后直接得到最终的 **DPO Objective 损失函数**：
-   $$\mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]$$
+   ```math
+   \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]
+   ```
 
 - **DPO 的关键步骤总结**：
-  1. 采用非参数化假设，以闭式解链接策略 $\pi_\theta$ 和隐含奖励 $r$。
-  2. 用策略网络概率比值参数化奖励 $r$。
+  1. 采用非参数化假设，以闭式解链接策略 $`\pi_\theta`$ 和隐含奖励 $`r`$。
+  2. 用策略网络概率比值参数化奖励 $`r`$。
   3. 将参数化后的隐含奖励直接套入监督偏好分类损失中训练。这在概念上就是**直接在成对偏好数据上执行极大似然估计（MLE）**。
 
 ---
@@ -844,12 +878,14 @@ $$\text{loss}(r_\theta) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} [\log \si
 ### 讲解
 为了在直觉上理解 DPO，我们对其损失函数求梯度（Gradient）：
 
-$$\nabla_\theta \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\beta \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \underbrace{\sigma(\hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w))}_{\text{隐含的预测误差权重}} \left[ \underbrace{\nabla_\theta \log \pi_\theta(y_w \mid x)}_{\text{拉高好回复概率}} - \underbrace{\nabla_\theta \log \pi_\theta(y_l \mid x)}_{\text{拉低坏回复概率}} \right] \right]$$
+```math
+\nabla_\theta \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\beta \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \underbrace{\sigma(\hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w))}_{\text{隐含的预测误差权重}} \left[ \underbrace{\nabla_\theta \log \pi_\theta(y_w \mid x)}_{\text{拉高好回复概率}} - \underbrace{\nabla_\theta \log \pi_\theta(y_l \mid x)}_{\text{拉低坏回复概率}} \right] \right]
+```
 
-其中 $\hat{r}_\theta(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}$ 为隐含奖励。
+其中 $`\hat{r}_\theta(x, y) = \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}`$ 为隐含奖励。
 - **机制剖析**：
-  - 右侧项：直接对好回答 $y_w$ 做正向梯度更新，对坏回答 $y_l$ 做负向更新。
-  - **隐含的预测误差权重项 (左侧 $\sigma$ 项)**：当模型对当前偏好对判定错误（即模型误以为坏回答得分高 $\hat{r}(y_l) > \hat{r}(y_w)$）时，分差为正，$\sigma$ 输出大，赋予极大的更新权重，惩罚模型；当模型判定正确且拉大分差时，$\sigma$ 输出小，几乎不产生梯度更新。这类似于**主动把学习焦点放在“错题集”上**。
+  - 右侧项：直接对好回答 $`y_w`$ 做正向梯度更新，对坏回答 $`y_l`$ 做负向更新。
+  - **隐含的预测误差权重项 (左侧 $`\sigma`$ 项)**：当模型对当前偏好对判定错误（即模型误以为坏回答得分高 $`\hat{r}(y_l) > \hat{r}(y_w)`$）时，分差为正，$`\sigma`$ 输出大，赋予极大的更新权重，惩罚模型；当模型判定正确且拉大分差时，$`\sigma`$ 输出小，几乎不产生梯度更新。这类似于**主动把学习焦点放在“错题集”上**。
 
 ---
 
@@ -873,11 +909,13 @@ $$\nabla_\theta \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\beta 
 ### 讲解
 SFT 与 RLHF 发展至今，涌现出许多 DPO 变体，以 Tulu 3 使用的两个最有名的变体为例：
 - **SimPO (Simple Preference Optimization) [Meng et al. 2024]**：
-  - **痛点**：DPO 依然需要加载一个冻结的 $\pi_{\text{ref}}$ 作为分母参考，这还是占用了两倍的显存。
-  - **方案**：SimPO 彻底去除了 $\pi_{\text{ref}}$，改用长度归一化和硬边界间隔（Margin $\gamma$）惩罚：
-    $$\mathcal{L}_{\text{SimPO}}(\pi_\theta) = -\mathbb{E} \left[ \log \sigma \left( \frac{\beta}{|y_w|} \log \pi_\theta(y_w \mid x) - \frac{\beta}{|y_l|} \log \pi_\theta(y_l \mid x) - \gamma \right) \right]$$
+  - **痛点**：DPO 依然需要加载一个冻结的 $`\pi_{\text{ref}}`$ 作为分母参考，这还是占用了两倍的显存。
+  - **方案**：SimPO 彻底去除了 $`\pi_{\text{ref}}`$，改用长度归一化和硬边界间隔（Margin $`\gamma`$）惩罚：
+    ```math
+    \mathcal{L}_{\text{SimPO}}(\pi_\theta) = -\mathbb{E} \left[ \log \sigma \left( \frac{\beta}{|y_w|} \log \pi_\theta(y_w \mid x) - \frac{\beta}{|y_l|} \log \pi_\theta(y_l \mid x) - \gamma \right) \right]
+    ```
 - **Length Normalized DPO**：
-  - 在 DPO 比值上除以回复的 Token 长度（$|y_c|$ 和 $|y_r|$），以此来**强行遏制和抵消 RLHF 训练中模型为了刷分自发产生的“话痨膨胀效应”**。
+  - 在 DPO 比值上除以回复的 Token 长度（$`|y_c|`$ 和 $`|y_r|`$），以此来**强行遏制和抵消 RLHF 训练中模型为了刷分自发产生的“话痨膨胀效应”**。
 
 ---
 
@@ -925,7 +963,7 @@ SFT 与 RLHF 发展至今，涌现出许多 DPO 变体，以 Tulu 3 使用的两
 - **横轴**：当前 RL tuned policy 与初始 SFT policy 的 KL 散度（代表更新幅度、探索距离）。
 - **纵轴**：不同评估器打出的模型 Win-rate 胜率得分。
 - **观察**：
-  - **(a) 人类偏好评分** 与 **(b) 嘈杂的 AlpacaFarm 评分**：在 KL 散度增加的初期（KL $\le 20$ 左右），模型表现稳步提升。但一旦越过拐点（KL 散度过大），**模型在人类和裁判眼中的实际表现发生断崖式下跌！** 模型进入了“Reward Hacking”荒原，开始通过拼凑能取悦 RM 神经网络但毫无逻辑的乱码来获得虚高分。
+  - **(a) 人类偏好评分** 与 **(b) 嘈杂的 AlpacaFarm 评分**：在 KL 散度增加的初期（KL $`\le 20`$ 左右），模型表现稳步提升。但一旦越过拐点（KL 散度过大），**模型在人类和裁判眼中的实际表现发生断崖式下跌！** 模型进入了“Reward Hacking”荒原，开始通过拼凑能取悦 RM 神经网络但毫无逻辑的乱码来获得虚高分。
   - **(c) 无噪声的 GPT-4 评分（右图）**：曲线没有发生下降。这是因为 GPT-4 裁判与 RM 分类器具有相同的系统性系统偏见（Sytematic Bias），因此无法识别该越界行为。
 
 ---
@@ -938,7 +976,7 @@ SFT 与 RLHF 发展至今，涌现出许多 DPO 变体，以 Tulu 3 使用的两
 这页展示了 RLHF 带来的另外两个严重退化指标：
 - **校准度丧失（Loss of Calibration, 右上图）**：
   - 预训练和 SFT 模型在概率预测上是高度校准的（左图 model=pre-train，Accuracy 与预测概率呈完美的 45 度对角线）。
-  - 经过 PPO 强化对齐后，**模型彻底丧失了概率校准度（右图 model=ppo）**。在很多高难度提问上，即使模型的真实准确率仅为 $50\%$，其输出首个 Token 的置信概率依然高达 $99\%$。这导致我们无法通过 Token Logits 的概率分布来判定模型的真实信心。
+  - 经过 PPO 强化对齐后，**模型彻底丧失了概率校准度（右图 model=ppo）**。在很多高难度提问上，即使模型的真实准确率仅为 $`50\%`$，其输出首个 Token 的置信概率依然高达 $`99\%`$。这导致我们无法通过 Token Logits 的概率分布来判定模型的真实信心。
 - **熵崩溃（Entropy Collapse, 下图）**：
   - 随着对齐进行，模型的概率熵值（Entropy）迅速向 0 偏移（深蓝色 text-davinci-003 高度集中在 0 附近），说明模型的多样性彻底崩溃。在相同的提问下，模型无论采样多少次，都只会给出那一套高度雷同的无趣回答。
 

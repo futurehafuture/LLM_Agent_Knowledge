@@ -42,10 +42,14 @@
 ![GPT-2 Perplexity](images/gpt2-perplexity.png)
 
 ### 1. 数学定义
-大语言模型本质上是词表上的条件概率分布。给定一个包含序列 Token 集合的测试集 $D = (x_1, x_2, \dots, x_N)$，困惑度（Perplexity, PPL）的计算公式为：
-$$\text{PPL}(D) = P(D)^{-\frac{1}{|D|}} = \left( \prod_{i=1}^{|D|} P(x_i \mid x_{<i}) \right)^{-\frac{1}{|D|}}$$
+大语言模型本质上是词表上的条件概率分布。给定一个包含序列 Token 集合的测试集 $`D = (x_1, x_2, \dots, x_N)`$，困惑度（Perplexity, PPL）的计算公式为：
+```math
+\text{PPL}(D) = P(D)^{-\frac{1}{|D|}} = \left( \prod_{i=1}^{|D|} P(x_i \mid x_{<i}) \right)^{-\frac{1}{|D|}}
+```
 对其取对数，等价于交叉熵损失（Cross-Entropy Loss）：
-$$\log \text{PPL}(D) = -\frac{1}{|D|} \sum_{i=1}^{|D|} \log P(x_i \mid x_{<i})$$
+```math
+\log \text{PPL}(D) = -\frac{1}{|D|} \sum_{i=1}^{|D|} \log P(x_i \mid x_{<i})
+```
 
 ### 2. 传统范式：分布内评估 (In-Distribution)
 早期的语言模型（如 CNNs, LSTMs）在标准化数据集上按 Train-Test 分割进行评估：
@@ -64,14 +68,16 @@ $$\log \text{PPL}(D) = -\frac{1}{|D|} \sum_{i=1}^{|D|} \log P(x_i \mid x_{<i})$$
 
 ### 2. 信仰：“Perplexity is all you need”
 很多预训练工程师对 PPL 抱有近乎宗教般的信仰：
-假设真实数据分布为 $t$，模型预测分布为 $p$。交叉熵损失的最小值是数据的熵 $H(t)$，当且仅当 $p = t$ 时达到。如果 $p$ 完美逼近 $t$，模型就能完美解出所有可以用条件概率 $P(\text{solution} \mid \text{problem})$ 表达的问题。因此，**无限拉低 PPL，终将通往 AGI**。
+假设真实数据分布为 $`t`$，模型预测分布为 $`p`$。交叉熵损失的最小值是数据的熵 $`H(t)`$，当且仅当 $`p = t`$ 时达到。如果 $`p`$ 完美逼近 $`t`$，模型就能完美解出所有可以用条件概率 $`P(\text{solution} \mid \text{problem})`$ 表达的问题。因此，**无限拉低 PPL，终将通往 AGI**。
 
 ### 3. 局限与优化：条件困惑度 (Conditional PPL)
 然而，PPL 对文本中的所有 Token 一视同仁。例如，预测短语 *"Stanford was founded in 1885"*：
 - 预测 *"founded"* 的难度极大，模型可能会因为没有猜中该动词而被处以极高的 PPL 惩罚，但这种词语预测错误与模型“知不知道斯坦福建校年份”这一核心知识无关。
 - **解决方案：条件困惑度 (Conditional Perplexity)**
   仅对模型回答（Response）部分计算 PPL，对提示词（Prompt）部分不计算损失：
-  $$\text{Conditional PPL} = P(\text{response} \mid \text{prompt})^{-\frac{1}{|\text{response}|}}$$
+  ```math
+  \text{Conditional PPL} = P(\text{response} \mid \text{prompt})^{-\frac{1}{|\text{response}|}}
+  ```
 
 ### 4. 披着羊皮的困惑度：完形填空与选择题
 许多经典基准本质上都是 PPL 的变体：
@@ -152,8 +158,10 @@ $$\log \text{PPL}(D) = -\frac{1}{|D|} \sum_{i=1}^{|D|} \log P(x_i \mid x_{<i})$$
 ### 1. Chatbot Arena (竞技场)
 - **数据收集**：用户输入任意 Prompt，两个匿名模型并行给出 Response，用户盲测投票（A更好、B更好或平局）。
 - **数学模型：ELO 评级系统**
-  假设模型 A 的评分为 $R_A$，模型 B 的评分为 $R_B$，模型预测 A 战胜 B 的概率公式为：
-  $$P(\text{A wins}) = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
+  假设模型 A 的评分为 $`R_A`$，模型 B 的评分为 $`R_B`$，模型预测 A 战胜 B 的概率公式为：
+  ```math
+  P(\text{A wins}) = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}
+  ```
   评测平台通过拟合真实海量对决数据，最大似然估计（MLE）出每个模型的 ELO 分数。
 - **折中与局限**：
   - **群体偏差**：匿名打分网民的水平和动机参差不齐，容易混淆“排版好看、字数多（Style）”与“事实正确（Correctness）”。

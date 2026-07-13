@@ -37,7 +37,7 @@ Hugging Face 团队在 [FinePDFs 博客](https://huggingface.co/spaces/HuggingFa
 ## Part 2: Data Pipeline - Filtering (数据过滤与质量控制)
 
 ### 1. 过滤算法的通用框架
-数据过滤的核心算法任务是：给定一些**目标数据（Target Data）$T$**（即我们希望模型学到的“高质量、理想数据样例”）和大量的**原始数据（Raw Data） $R$**，从中找出与 $T$ 最相似的一个子集 $T'$。
+数据过滤的核心算法任务是：给定一些**目标数据（Target Data）$`T`$**（即我们希望模型学到的“高质量、理想数据样例”）和大量的**原始数据（Raw Data） $`R`$**，从中找出与 $`T`$ 最相似的一个子集 $`T'`$。
 
 ![Raw-Target Filtering Schema](images/raw-target-schema.png)
 
@@ -46,17 +46,21 @@ Hugging Face 团队在 [FinePDFs 博客](https://huggingface.co/spaces/HuggingFa
   2. **质量过滤（Quality Filtering）**：筛选高信息密度、表达流畅的内容，剔除垃圾网页。
   3. **毒性过滤（Toxicity Filtering）**：剔除暴力、色情、仇恨言论等有害内容。
 - **对过滤算法的期望（Desiderata）**：
-  - **泛化能力**：算法不仅要精确匹配 $T$，还要能从 $T$ 的特征中泛化，选出与 $T$ 语义相近但内容不同的 $T'$。
-  - **极快的速度**：原始数据 $R$ 的体量往往在 PB 级别，过滤模型必须轻量、高效，能在大规模集群上并行处理。
+  - **泛化能力**：算法不仅要精确匹配 $`T`$，还要能从 $`T`$ 的特征中泛化，选出与 $`T`$ 语义相近但内容不同的 $`T'`$。
+  - **极快的速度**：原始数据 $`R`$ 的体量往往在 PB 级别，过滤模型必须轻量、高效，能在大规模集群上并行处理。
   - **参考资料**：更多数据选择方法可参阅 [数据选择调查论文](https://arxiv.org/abs/2402.16827)。
 
 - **分类器的两大基本范式**：
-  1. **生成式模型评分（如 KenLM）**：在目标数据 $T$ 上训练一个 $N$-gram 语言模型，对原始网页 $x$ 计算困惑度或概率：
-     $$\text{score}(x) = p_T(x)$$
+  1. **生成式模型评分（如 KenLM）**：在目标数据 $`T`$ 上训练一个 $`N`$-gram 语言模型，对原始网页 $`x`$ 计算困惑度或概率：
+     ```math
+     \text{score}(x) = p_T(x)
+     ```
   2. **判别式分类器评分（如 fastText）**：利用浅层神经网络或线性模型，预测样本属于目标数据集的概率：
-     $$\text{score}(x) = p(T \mid x)$$
+     ```math
+     \text{score}(x) = p(T \mid x)
+     ```
   
-  **使用方法**：通常设定一个阈值（Threshold），仅保留 $\text{score}(x) \ge \text{threshold}$ 的网页，或根据分数进行随机采样。
+  **使用方法**：通常设定一个阈值（Threshold），仅保留 $`\text{score}(x) \ge \text{threshold}`$ 的网页，或根据分数进行随机采样。
 
 ### 2. 主流模型的过滤策略
 历史上，关于是否在预训练中采用模型进行过滤，存在两种流派：
@@ -65,18 +69,18 @@ Hugging Face 团队在 [FinePDFs 博客](https://huggingface.co/spaces/HuggingFa
 
 #### **A. 语言识别 (Language Identification)**
 * **fastText**：Meta 开源的高效多语言分类器（支持 176 种语言），训练数据来自 Wikipedia、Tatoeba（翻译网站）和 SETimes（新闻网）。
-* **Dolma 做法**：仅保留满足 $p(\text{English}) \ge 0.5$ 的网页。
+* **Dolma 做法**：仅保留满足 $`p(\text{English}) \ge 0.5`$ 的网页。
 
 #### **B. 数学文本过滤 (OpenMathText)**
 * **目标**：从 Common Crawl 中筛选出大规模的高质量数学相关文本。
 * **过滤手段**：
   1. **规则过滤**：提取包含 LaTeX 数学命令的网页。
   2. **KenLM 模型评分**：在 ProofPile（高质量数学文献库）上训练 KenLM 模型，仅保留 Perplexity < 15000 的网页。
-  3. **fastText 二分类模型**：训练 fastText 区分数学与非数学网页，若预测属于数学的概率 $\ge 0.17$，或者不包含数学但质量评分 $\ge 0.8$，则予以保留。
+  3. **fastText 二分类模型**：训练 fastText 区分数学与非数学网页，若预测属于数学的概率 $`\ge 0.17`$，或者不包含数学但质量评分 $`\ge 0.8`$，则予以保留。
 * **效果**：用清洗出的 14.7B Token 训练的 1.4B 模型，性能超越了在 20 倍未清洗数据上训练的模型。
 
 #### **C. GPT-3 的分类器过滤**
-* **正样本 $T$**：Wikipedia, WebText2, Books1, Books2。
+* **正样本 $`T`$**：Wikipedia, WebText2, Books1, Books2。
 * **负样本**：原始 Common Crawl。
 * **方法**：使用单词特征训练一个 Spark 逻辑回归（Logistic Regression）分类器。为了防止模型过度拟合特定主题，GPT-3 没有采用硬阈值截断，而是使用 Pareto 分布进行了**随机保留（Stochastic Keeping）**：
   ```python
@@ -86,17 +90,17 @@ Hugging Face 团队在 [FinePDFs 博客](https://huggingface.co/spaces/HuggingFa
   ```
 
 #### **D. LLaMA / RedPajama**
-* **正样本 $T$**：Wikipedia 页面中引用的外部网页（被 Wikipedia 引用说明其内容具有一定的事实可信度）。
+* **正样本 $`T`$**：Wikipedia 页面中引用的外部网页（被 Wikipedia 引用说明其内容具有一定的事实可信度）。
 * **负样本**：随机 Common Crawl 网页。
 * **方法**：训练二分类器，仅保留分类为正样本的网页。
 
 #### **E. phi-1 的教育价值过滤 (Educational Value)**
 * **哲学**：用极高质量的“教科书级数据（Textbooks）”来训练小模型（1.5B 参数）。
 * **方法**：
-  1. 原始数据 $R$ 为 The Stack 的 Python 代码子集。
-  2. 使用 GPT-4 对其中的 100K 样本进行打分，提示词为：*“评估该代码段对于一个旨在学习基本编程概念的学生的教育价值（educational value）”*。获得高质量正样本 $T$。
+  1. 原始数据 $`R`$ 为 The Stack 的 Python 代码子集。
+  2. 使用 GPT-4 对其中的 100K 样本进行打分，提示词为：*“评估该代码段对于一个旨在学习基本编程概念的学生的教育价值（educational value）”*。获得高质量正样本 $`T`$。
   3. 使用预训练的代码生成模型的输出嵌入（Output Embedding）作为特征，训练一个轻量级的**随机森林分类器（Random Forest Classifier）**。
-  4. 使用该随机森林分类器在整个 $R$ 上进行预测，仅保留分类为正的样本。
+  4. 使用该随机森林分类器在整个 $`R`$ 上进行预测，仅保留分类为正的样本。
 * **效果对比**：
   - 在未过滤的 The Stack 子集上训练，1.3B 模型在 HumanEval 上准确率为 **12.19%**（训练了 96K 步）。
   - 在过滤后的高质量教科书数据集上训练，准确率暴涨至 **17.68%**（仅训练了 36K 步）。
@@ -155,17 +159,21 @@ deduped_items = [next(group) for h, group in hash_items]
 ### 3. 近似去重（Fuzzy Deduplication）
 
 #### **A. 杰卡德相似度 (Jaccard Similarity)**
-评估两个集合 $A$ 和 $B$ 相似度的经典指标：
-$$\text{Jaccard}(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
-当两个文档的词袋（或 $N$-gram）集合的 Jaccard 相似度高于设定的阈值时，我们定义它们为**近似重复**。
+评估两个集合 $`A`$ 和 $`B`$ 相似度的经典指标：
+```math
+\text{Jaccard}(A, B) = \frac{|A \cap B|}{|A \cup B|}
+```
+当两个文档的词袋（或 $`N`$-gram）集合的 Jaccard 相似度高于设定的阈值时，我们定义它们为**近似重复**。
 
 #### **B. MinHash 算法**
-在海量网页下，两两计算 Jaccard 相似度的复杂度是 $O(N^2)$，这在工程上是不可接受的。我们需要一种在 $O(N)$ 线性时间内匹配近似网页的算法。
+在海量网页下，两两计算 Jaccard 相似度的复杂度是 $`O(N^2)`$，这在工程上是不可接受的。我们需要一种在 $`O(N)`$ 线性时间内匹配近似网页的算法。
 
-**MinHash 核心原理**：设计一个随机哈希函数 $h$，使得两个集合的哈希值碰撞概率**恰好等于**它们的 Jaccard 相似度：
-$$\Pr[h(A) = h(B)] = \text{Jaccard}(A, B)$$
+**MinHash 核心原理**：设计一个随机哈希函数 $`h`$，使得两个集合的哈希值碰撞概率**恰好等于**它们的 Jaccard 相似度：
+```math
+\Pr[h(A) = h(B)] = \text{Jaccard}(A, B)
+```
 - **哈希函数设计**：
-  对于集合 $S$，我们用不同的随机种子生成哈希函数，并取其中的最小值：
+  对于集合 $`S`$，我们用不同的随机种子生成哈希函数，并取其中的最小值：
   ```python
   def minhash(S: set[str], seed: int) -> int:
       return min(mmh3.hash(x, seed) for x in S)
@@ -177,27 +185,35 @@ $$\Pr[h(A) = h(B)] = \text{Jaccard}(A, B)$$
 我们拥有了 MinHash 来估算 Jaccard 相似度，但为了找到高相似度样本，我们依然需要进行判定。LSH 的目的是：**只对那些极有可能相似的网页计算 MinHash，过滤掉绝对不相似的网页**。
 
 - **LSH 的分桶与“与-或（And-Or）”结构**：
-  1. 生成 $n$ 个不同的 MinHash 函数（例如 $n = 12$）。
-  2. 将这 $n$ 个哈希值分为 $b$ 个带（Bands），每个带包含 $r$ 个哈希值（即 $n = b \times r$，如 $b = 3, r = 4$）。
-  3. **碰撞判定**：当且仅当两个文档在**某一个特定的带（Band）**上，其所包含的 **$r$ 个哈希值全部一致**时，这两个文档才会被分入同一个桶（Bucket）并被判定为相似候选。
+  1. 生成 $`n`$ 个不同的 MinHash 函数（例如 $`n = 12`$）。
+  2. 将这 $`n`$ 个哈希值分为 $`b`$ 个带（Bands），每个带包含 $`r`$ 个哈希值（即 $`n = b \times r`$，如 $`b = 3, r = 4`$）。
+  3. **碰撞判定**：当且仅当两个文档在**某一个特定的带（Band）**上，其所包含的 **$`r`$ 个哈希值全部一致**时，这两个文档才会被分入同一个桶（Bucket）并被判定为相似候选。
 
-$$\text{Band 内部完全匹配的概率} = s^r \quad (\text{其中 } s = \text{Jaccard 相似度})$$
-$$\text{至少有一个 Band 匹配（碰撞）的概率} = 1 - (1 - s^r)^b$$
+```math
+\text{Band 内部完全匹配的概率} = s^r \quad (\text{其中 } s = \text{Jaccard 相似度})
+```
+```math
+\text{至少有一个 Band 匹配（碰撞）的概率} = 1 - (1 - s^r)^b
+```
 
 - **S 曲线（S-curve）阈值控制**：
-  这种“与-或”结构会产生一个极其陡峭的“S 曲线”。通过调整 $b$ 和 $r$，我们可以灵活控制相交点（阈值）的位置。
-  - **增加 $r$**：要求带内匹配的哈希数量变多，曲线向右移动（匹配门槛变高，更难发生碰撞）。
-  - **增加 $b$**：允许匹配的带的数量变多，曲线向左移动（匹配门槛变低，更容易碰撞）。
+  这种“与-或”结构会产生一个极其陡峭的“S 曲线”。通过调整 $`b`$ 和 $`r`$，我们可以灵活控制相交点（阈值）的位置。
+  - **增加 $`r`$**：要求带内匹配的哈希数量变多，曲线向右移动（匹配门槛变高，更难发生碰撞）。
+  - **增加 $`b`$**：允许匹配的带的数量变多，曲线向左移动（匹配门槛变低，更容易碰撞）。
 
 - **相变临界阈值公式**：
-  $$\text{threshold} \approx \left(\frac{1}{b}\right)^{\frac{1}{r}}$$
-  当 $s > \text{threshold}$ 时，碰撞概率迅速逼近 1；当 $s < \text{threshold}$ 时，碰撞概率迅速降为 0。
+  ```math
+  \text{threshold} \approx \left(\frac{1}{b}\right)^{\frac{1}{r}}
+  ```
+  当 $`s > \text{threshold}`$ 时，碰撞概率迅速逼近 1；当 $`s < \text{threshold}`$ 时，碰撞概率迅速降为 0。
 
 > **💡 行业实践案例**：
-> 在经典的去重论文中，参数设置为 $n = 9000$ 个哈希函数，划分为 $b = 20$ 个带，每个带 $r = 450$ 个哈希值。
+> 在经典的去重论文中，参数设置为 $`n = 9000`$ 个哈希函数，划分为 $`b = 20`$ 个带，每个带 $`r = 450`$ 个哈希值。
 > 其临界相变阈值为：
-> $$\text{threshold} = \left(\frac{1}{20}\right)^{\frac{1}{450}} \approx 0.9933$$
-> 只要两个网页的相似度达到 $99.3\%$，它们就会以极高概率（$1 - (1 - \frac{1}{20})^{20} \approx 64\%$）被筛出来并去重。
+> ```math
+> \text{threshold} = \left(\frac{1}{20}\right)^{\frac{1}{450}} \approx 0.9933
+> ```
+> 只要两个网页的相似度达到 $`99.3\%`$，它们就会以极高概率（$`1 - (1 - \frac{1}{20})^{20} \approx 64\%`$）被筛出来并去重。
 
 ---
 
@@ -210,26 +226,30 @@ $$\text{至少有一个 Band 匹配（碰撞）的概率} = 1 - (1 - s^r)^b$$
 ### 1. 传统基线方法
 - **直觉经验派（Vibes）**：根据研究员的经验和直觉强行指定比例（早期非常常见）。
 - **均匀采样（Uniform Sampling）**：给每个数据源相同的权重：
-  $$p(s) \propto 1$$
+  ```math
+  p(s) \propto 1
+  ```
 - **等比例混合（Proportional Mixing）**：按照数据源本身的 Token 规模大小分配权重（大水漫灌）：
-  $$p(s) \propto \text{num\_tokens}(s)$$
+  ```math
+  p(s) \propto \text{num\_tokens}(s)
+  ```
 
 ### 2. 核心瓶颈：小数据源的过拟合（Epoching Constraints）
-高品质的数据源（如 Wikipedia、教科书）往往体积很小，而低品质的 Common Crawl 规模极其庞大。如果我们想让模型多学高质量数据（调高其权重 $p(s)$），会导致模型在小语料上被训练很多个轮次（Epochs）。
+高品质的数据源（如 Wikipedia、教科书）往往体积很小，而低品质的 Common Crawl 规模极其庞大。如果我们想让模型多学高质量数据（调高其权重 $`p(s)`$），会导致模型在小语料上被训练很多个轮次（Epochs）。
 
 > **💡 极端计算案例**：
 > 假设低质量数据有 10T Token，高质量数据仅有 10B Token（相差 1000 倍）。
-> 我们采用 naive 配比，让它们各占 $50\%$ 的训练权重。
+> 我们采用 naive 配比，让它们各占 $`50\%`$ 的训练权重。
 > 模型总训练量为 1T Token。此时：
-> - 低质量数据消耗：$500\text{B} / 10\text{T} = 0.05$ 轮（完全没有过拟合风险）。
-> - 高质量数据消耗：$500\text{B} / 10\text{B} = 50$ 轮！
+> - 低质量数据消耗：$`500\text{B} / 10\text{T} = 0.05`$ 轮（完全没有过拟合风险）。
+> - 高质量数据消耗：$`500\text{B} / 10\text{B} = 50`$ 轮！
 > **过高的训练轮数（Epochs）会导致模型在高质量数据上严重过拟合，死记硬背细节，丧失泛化能力。**
 
 #### **UniMax 策略**
 为了解决这一问题，DeepMind 提出了 UniMax 方案：
 - 尽可能均匀地对各个源进行采样。
-- 对每个数据源设置一个**最大训练轮数上限 $C$**（即同一个 Token 被看过的次数不能超过 $C$）。
-- 当某个小数据源达到上限 $C$ 时，将其从采样池中剔除，剩余的算力分摊给其他未饱和的数据源。
+- 对每个数据源设置一个**最大训练轮数上限 $`C`$**（即同一个 Token 被看过的次数不能超过 $`C`$）。
+- 当某个小数据源达到上限 $`C`$ 时，将其从采样池中剔除，剩余的算力分摊给其他未饱和的数据源。
 
 ### 3. 现代方法：基于回归的混合 (Regression-Based Mixing)
 代表性方法为 **RegMix** 与 **OLMix**：
@@ -237,7 +257,7 @@ $$\text{至少有一个 Band 匹配（碰撞）的概率} = 1 - (1 - s^r)^b$$
 ![RegMix Pipeline](images/regmix.png)
 
 1. **小规模实验**：定义一个配比空间的分布（如狄利克雷分布 Dirichlet Distribution），采样几十种不同的数据配比配方，用它们分别训练一批极小参数的模型（如 1M-10M 参数）。
-2. **拟合回归模型**：收集这些小模型在下游评估任务上的表现，使用回归模型（如线性回归、梯度提升树 GBDT）拟合从“数据配比 $p$”到“下游指标/Loss”的映射关系。
+2. **拟合回归模型**：收集这些小模型在下游评估任务上的表现，使用回归模型（如线性回归、梯度提升树 GBDT）拟合从“数据配比 $`p`$”到“下游指标/Loss”的映射关系。
 3. **寻找最优解**：通过回归模型预测并优化，找出最优的数据配比配方。
 
 ![Data Mixing Methods](images/data-mixing-methods.png)
@@ -249,8 +269,12 @@ $$\text{至少有一个 Band 匹配（碰撞）的概率} = 1 - (1 - s^r)^b$$
 
 **解决方案：模拟迭代（Simulated Epoching）**
 在运行小模型实验时，**等比例缩放（下采样）所有数据源的实际大小**：
-$$\text{ratio} = \frac{\text{Small Run Tokens}}{\text{Large Run Tokens}}$$
-$$\text{downsampled\_source\_size} = \text{original\_size} \times \text{ratio}$$
+```math
+\text{ratio} = \frac{\text{Small Run Tokens}}{\text{Large Run Tokens}}
+```
+```math
+\text{downsampled\_source\_size} = \text{original\_size} \times \text{ratio}
+```
 在小模型实验中，小语料在极低的 Token 下就会提早触发 Epoching，让小模型暴露过拟合的劣势。这样，回归模型学出来的最优配比就会自然向大模型对齐，避免在大模型训练中出现过拟合。
 
 ---
@@ -307,6 +331,6 @@ $$\text{downsampled\_source\_size} = \text{original\_size} \times \text{ratio}$$
 
 1. **转换（Transformation）**：HTML、PDF、LaTeX 源码等向纯文本的抽取转换是有损的，抽取工具的质量是数据流的第一关。
 2. **过滤（Filtering）**：模型级过滤（如 fastText、教育价值分类器）正逐渐替代传统的手工规则限制。过滤阈值需要随着算力和参数规模的增大而调低。
-3. **去重（Deduplication）**：近似去重是解决复读机记忆的关键。MinHash 和 LSH 能够在 $O(N)$ 时间内完成海量数据的相似度分桶。
+3. **去重（Deduplication）**：近似去重是解决复读机记忆的关键。MinHash 和 LSH 能够在 $`O(N)`$ 时间内完成海量数据的相似度分桶。
 4. **混合（Mixing）**：数据配比直接决定模型下游能力。可以通过小模型 RegMix 实验来寻找最优解，但必须使用“模拟迭代”防止小模型实验避开大模型预训练的过拟合惩罚。
 5. **后期合成（Post-Training Synthetic Data）**：从 OpenThoughts 到 SWE-Zero，利用大模型的推理世界模型低成本、大规模生成长思维链与复杂的软件交互开发轨迹，是未来提升 AI 专业场景解决能力的主要路径。
