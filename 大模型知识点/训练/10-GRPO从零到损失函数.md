@@ -6,7 +6,7 @@ tags:
   - GRPO
   - DeepSeek
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-30
 aliases:
   - GRPO
   - Group Relative Policy Optimization
@@ -56,9 +56,9 @@ aliases:
 
 模型不要只答一次，而是对**同一道题**生成 4 个不同回答：
 
-1. “$3+2=5$，答案是 5。”
+1. “$`3+2=5`$，答案是 5。”
 2. “答案是 5。”
-3. “$3+2=6$，答案是 6。”
+3. “$`3+2=6`$，答案是 6。”
 4. “我不知道。”
 
 奖励规则给它们打分后，GRPO 不只问“这个回答得了几分”，而是问：
@@ -83,9 +83,9 @@ aliases:
 
 ### 2.1 Prompt、Completion 与 Token
 
-- **Prompt / 问题** $q$：输入给模型的题目；
-- **Completion / Response / 输出** $o_i$：模型对题目的一个完整回答；
-- **Token** $o_{i,t}$：回答 $i$ 中第 $t$ 个 token。
+- **Prompt / 问题** $`q`$：输入给模型的题目；
+- **Completion / Response / 输出** $`o_i`$：模型对题目的一个完整回答；
+- **Token** $`o_{i,t}`$：回答 $`i`$ 中第 $`t`$ 个 token。
 
 一个回答由多个 token 组成：
 
@@ -98,28 +98,28 @@ aliases:
 LLM 每生成一个 token，都相当于执行一次“动作”：
 
 ```math
-\pi_\theta(o_{i,t}\mid q,o_{i,<t})
+\pi_\theta(o_{i,t}\mid q,o_{i,\lt t})
 ```
 
-表示：给定问题 $q$ 和此前已经生成的 token $o_{i,<t}$，当前策略选择 token $o_{i,t}$ 的概率。
+表示：给定问题 $`q`$ 和此前已经生成的 token $`o_{i,\lt t}`$，当前策略选择 token $`o_{i,t}`$ 的概率。
 
 ### 2.2 Policy：正在训练的模型
 
-$\pi_\theta$ 是当前要训练的 LLM，参数是 $\theta$。训练的本质是改变 $\theta$，从而改变各 token 的生成概率。
+$`\pi_\theta`$ 是当前要训练的 LLM，参数是 $`\theta`$。训练的本质是改变 $`\theta`$，从而改变各 token 的生成概率。
 
 ### 2.3 Old Policy：采样数据时的旧策略
 
-$\pi_{\theta_{\text{old}}}$ 是生成本批回答时使用的策略快照。
+$`\pi_{\theta_{\text{old}}}`$ 是生成本批回答时使用的策略快照。
 
-为什么要保存旧概率？因为回答是由旧策略采样出来的，更新参数后策略已经变成 $\pi_\theta$。GRPO 要计算：
+为什么要保存旧概率？因为回答是由旧策略采样出来的，更新参数后策略已经变成 $`\pi_\theta`$。GRPO 要计算：
 
 ```math
 r_{i,t}(\theta)
 =
 \frac{
-\pi_\theta(o_{i,t}\mid q,o_{i,<t})
+\pi_\theta(o_{i,t}\mid q,o_{i,\lt t})
 }{
-\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})
+\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,\lt t})
 }.
 ```
 
@@ -127,19 +127,19 @@ r_{i,t}(\theta)
 
 ### 2.4 Reference Policy：限制模型别跑太远的参考模型
 
-$\pi_{\text{ref}}$ 通常是冻结的 SFT 模型。它不负责采样校正，而负责充当“语言能力锚点”：
+$`\pi_{\text{ref}}`$ 通常是冻结的 SFT 模型。它不负责采样校正，而负责充当“语言能力锚点”：
 
 - 离参考模型太远，可能出现胡言乱语或 reward hacking；
 - 所以训练目标中加入 KL 惩罚，限制当前策略不要偏离参考策略太多。
 
 > [!warning] Old policy 和 reference policy 不是一回事
-> - $\pi_{\text{old}}$：回答由谁采出来，用于算 PPO/GRPO ratio；
-> - $\pi_{\text{ref}}$：希望模型别偏离谁太远，用于算 KL；
+> - $`\pi_{\text{old}}`$：回答由谁采出来，用于算 PPO/GRPO ratio；
+> - $`\pi_{\text{ref}}`$：希望模型别偏离谁太远，用于算 KL；
 > - 某次训练刚开始时二者可能参数恰好相同，但职责仍不同，后续通常也会分开。
 
 ### 2.5 Reward：完整回答得了多少分
 
-奖励 $R_i$ 是对第 $i$ 个完整回答打出的标量，例如：
+奖励 $`R_i`$ 是对第 $`i`$ 个完整回答打出的标量，例如：
 
 ```text
 回答 1：1.2 分
@@ -163,10 +163,10 @@ $\pi_{\text{ref}}$ 通常是冻结的 SFT 模型。它不负责采样校正，�
 - 简单题大家都得 1.0，0.8 可能偏差；
 - 难题大家都得 0，0.8 可能非常好。
 
-因此需要 baseline。PPO 常用 Critic 估计 $V(s)$ 作为 baseline；GRPO 用**同题这一组回答的平均奖励**：
+因此需要 baseline。PPO 常用 Critic 估计 $`V(s)`$ 作为 baseline；GRPO 用**同题这一组回答的平均奖励**：
 
 ```math
-b(q)=\operatorname{mean}(R_1,\ldots,R_G).
+b(q)=\mathrm{mean}(R_1,\ldots,R_G).
 ```
 
 ### 2.7 Advantage：比基准好多少
@@ -182,11 +182,11 @@ A_i=R_i-b(q).
 ```math
 \hat A_i
 =
-\frac{R_i-\operatorname{mean}(\mathbf R)}
-{\operatorname{std}(\mathbf R)+\varepsilon_{\text{num}}}.
+\frac{R_i-\mathrm{mean}(\mathbf R)}
+{\mathrm{std}(\mathbf R)+\varepsilon_{\text{num}}}.
 ```
 
-这里的 $\varepsilon_{\text{num}}$ 是防止除以 0 的极小数，不是 PPO clip 的 $\epsilon$。
+这里的 $`\varepsilon_{\text{num}}`$ 是防止除以 0 的极小数，不是 PPO clip 的 $`\epsilon`$。
 
 ### 2.8 Loss：模型真正反向传播的量
 
@@ -230,10 +230,10 @@ w_{\text{acc}}R_i^{\text{acc}}
 
 | 奖励项 | 规则 | 权重 |
 |---|---|---:|
-| 准确性 $R^{\text{acc}}$ | 最终答案正确得 1，否则得 0 | 1.0 |
-| 格式 $R^{\text{fmt}}$ | 符合 `<think>...</think><answer>...</answer>` 得 1 | 0.2 |
-| 风格 $R^{\text{style}}$ | 清晰、无语言混杂，由 RM 给 $[0,1]$ 分 | 0.2 |
-| 长度惩罚 $P^{\text{length}}$ | 超过阈值的冗余程度，取 $[0,1]$ | 0.1 |
+| 准确性 $`R^{\text{acc}}`$ | 最终答案正确得 1，否则得 0 | 1.0 |
+| 格式 $`R^{\text{fmt}}`$ | 符合 `<think>...</think><answer>...</answer>` 得 1 | 0.2 |
+| 风格 $`R^{\text{style}}`$ | 清晰、无语言混杂，由 RM 给 $`[0,1]`$ 分 | 0.2 |
+| 长度惩罚 $`P^{\text{length}}`$ | 超过阈值的冗余程度，取 $`[0,1]`$ | 0.1 |
 
 那么某回答：
 
@@ -284,7 +284,7 @@ R=1.0\times1+0.2\times1+0.2\times0.5-0.1\times1=1.2.
 R_i=R(q,o_i).
 ```
 
-最常见的 GRPO 教程都采用这个版本。回答 $o_i$ 中的所有 token 通常共享同一个 $\hat A_i$。
+最常见的 GRPO 教程都采用这个版本。回答 $`o_i`$ 中的所有 token 通常共享同一个 $`\hat A_i`$。
 
 #### Process-level：中间步骤也有分
 
@@ -324,7 +324,7 @@ R_i\nabla_\theta\log\pi_\theta(o_i\mid q),
 
 ### 4.2 组均值
 
-一个 prompt 生成 $G$ 个回答，奖励向量为：
+一个 prompt 生成 $`G`$ 个回答，奖励向量为：
 
 ```math
 \mathbf R=[R_1,R_2,\ldots,R_G].
@@ -363,20 +363,20 @@ R_i\nabla_\theta\log\pi_\theta(o_i\mid q),
 2. **缩放**：除标准差，让不同组的数值尺度更接近。
 
 > [!important] 符号和大小分别表示什么
-> - $\hat A_i>0$：回答优于组内平均，要提高其 token 概率；
-> - $\hat A_i<0$：回答劣于组内平均，要降低其 token 概率；
-> - $|\hat A_i|$ 越大：相对组内平均越突出，更新信号通常越强。
+> - $`\hat A_i>0`$：回答优于组内平均，要提高其 token 概率；
+> - $`\hat A_i<0`$：回答劣于组内平均，要降低其 token 概率；
+> - $`\lvert\hat A_i\rvert`$ 越大：相对组内平均越突出，更新信号通常越强。
 
 ### 4.5 完整数值例子：从奖励算到优势
 
 对同一道题采样 4 个回答，总奖励为：
 
-| 回答 | 总奖励 $R_i$ |
+| 回答 | 总奖励 $`R_i`$ |
 |---|---:|
-| $o_1$ | 1.2 |
-| $o_2$ | 1.0 |
-| $o_3$ | 0.2 |
-| $o_4$ | 0.0 |
+| $`o_1`$ | 1.2 |
+| $`o_2`$ | 1.0 |
+| $`o_3`$ | 0.2 |
+| $`o_4`$ | 0.0 |
 
 **第一步：算均值**
 
@@ -418,10 +418,10 @@ o₄：0.0 - 0.6 = -0.6
 
 | 回答 | 奖励 | 优势 | 学习方向 |
 |---|---:|---:|---|
-| $o_1$ | 1.2 | +1.1767 | 明显提高概率 |
-| $o_2$ | 1.0 | +0.7845 | 提高概率 |
-| $o_3$ | 0.2 | -0.7845 | 降低概率 |
-| $o_4$ | 0.0 | -1.1767 | 明显降低概率 |
+| $`o_1`$ | 1.2 | +1.1767 | 明显提高概率 |
+| $`o_2`$ | 1.0 | +0.7845 | 提高概率 |
+| $`o_3`$ | 0.2 | -0.7845 | 降低概率 |
+| $`o_4`$ | 0.0 | -1.1767 | 明显降低概率 |
 
 可以验证：
 
@@ -453,7 +453,7 @@ o₄：0.0 - 0.6 = -0.6
 - 提高采样多样性或改进奖励，让组内能拉开差异。
 
 > [!warning] 二元正确性奖励的常见退化
-> 如果一题的 $G$ 个回答全对，或者全错，组内准确性奖励完全相同，这一组就没有相对信号。增加 $G$、适当提高采样温度、设计更细粒度奖励或调整题目难度，都可能改善这个问题。
+> 如果一题的 $`G`$ 个回答全对，或者全错，组内准确性奖励完全相同，这一组就没有相对信号。增加 $`G`$、适当提高采样温度、设计更细粒度奖励或调整题目难度，都可能改善这个问题。
 
 ### 4.7 除以标准差并非没有代价
 
@@ -476,13 +476,13 @@ o₄：0.0 - 0.6 = -0.6
 
 ## 5. 为什么一个序列优势会作用到每个 token
 
-假设回答 $o_i$ 得到一个序列级优势 $\hat A_i$。整段回答的概率是：
+假设回答 $`o_i`$ 得到一个序列级优势 $`\hat A_i`$。整段回答的概率是：
 
 ```math
 \pi_\theta(o_i\mid q)
 =
-\prod_{t=1}^{|o_i|}
-\pi_\theta(o_{i,t}\mid q,o_{i,<t}).
+\prod_{t=1}^{\lvert o_i\rvert}
+\pi_\theta(o_{i,t}\mid q,o_{i,\lt t}).
 ```
 
 取对数后，乘积变成求和：
@@ -490,8 +490,8 @@ o₄：0.0 - 0.6 = -0.6
 ```math
 \log\pi_\theta(o_i\mid q)
 =
-\sum_{t=1}^{|o_i|}
-\log\pi_\theta(o_{i,t}\mid q,o_{i,<t}).
+\sum_{t=1}^{\lvert o_i\rvert}
+\log\pi_\theta(o_{i,t}\mid q,o_{i,\lt t}).
 ```
 
 因此序列级策略梯度近似为：
@@ -502,7 +502,7 @@ o₄：0.0 - 0.6 = -0.6
 =
 \sum_t
 \hat A_i
-\nabla_\theta\log\pi_\theta(o_{i,t}\mid q,o_{i,<t}).
+\nabla_\theta\log\pi_\theta(o_{i,t}\mid q,o_{i,\lt t}).
 ```
 
 这就是为什么在 outcome-level GRPO 中：
@@ -520,15 +520,15 @@ o₄：0.0 - 0.6 = -0.6
 
 ## 6. 概率比 ratio 到底怎么算
 
-对回答 $i$ 的第 $t$ 个 token：
+对回答 $`i`$ 的第 $`t`$ 个 token：
 
 ```math
 r_{i,t}(\theta)
 =
 \frac{
-\pi_\theta(o_{i,t}\mid q,o_{i,<t})
+\pi_\theta(o_{i,t}\mid q,o_{i,\lt t})
 }{
-\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})
+\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,\lt t})
 }.
 ```
 
@@ -548,9 +548,9 @@ r_{i,t}(\theta)
 
 | ratio | 含义 |
 |---:|---|
-| $r=1$ | 新旧策略给该 token 的概率相同 |
-| $r>1$ | 新策略提高了该 token 的概率 |
-| $r<1$ | 新策略降低了该 token 的概率 |
+| $`r=1`$ | 新旧策略给该 token 的概率相同 |
+| $`r>1`$ | 新策略提高了该 token 的概率 |
+| $`r<1`$ | 新策略降低了该 token 的概率 |
 
 ### 数值例子
 
@@ -563,7 +563,7 @@ r=\frac{0.25}{0.20}=1.25.
 表示当前策略把这个 token 的概率提高了 25%。
 
 > [!note] 为什么刚生成完时 ratio 常等于 1
-> 如果当前模型刚用自己的参数完成 rollout，还没有做任何更新，那么 $\pi_\theta=\pi_{\text{old}}$，第一遍计算时 ratio 就是 1。对同一批 rollout 做第一次梯度更新后，当前策略发生变化；若继续对这批数据做后续 update iteration，ratio 才会偏离 1，clip 也才更可能真正生效。即使只更新一遍，保留 ratio 形式也能统一算法与实现。
+> 如果当前模型刚用自己的参数完成 rollout，还没有做任何更新，那么 $`\pi_\theta=\pi_{\text{old}}`$，第一遍计算时 ratio 就是 1。对同一批 rollout 做第一次梯度更新后，当前策略发生变化；若继续对这批数据做后续 update iteration，ratio 才会偏离 1，clip 也才更可能真正生效。即使只更新一遍，保留 ratio 形式也能统一算法与实现。
 
 ---
 
@@ -582,20 +582,20 @@ r_{i,t}\hat A_i,
 ```math
 \min\left(
 r_{i,t}\hat A_i,\;
-\operatorname{clip}(r_{i,t},1-\epsilon,1+\epsilon)\hat A_i
+\mathrm{clip}(r_{i,t},1-\epsilon,1+\epsilon)\hat A_i
 \right).
 ```
 
-典型直觉范围是 $[0.8,1.2]$，即 $\epsilon=0.2$。
+典型直觉范围是 $`[0.8,1.2]`$，即 $`\epsilon=0.2`$。
 
 ### 7.1 正优势时
 
-沿用 $\hat A_1=1.1767$，假设 $r=1.25$：
+沿用 $`\hat A_1=1.1767`$，假设 $`r=1.25`$：
 
 ```math
 \begin{aligned}
 r\hat A_1&=1.25\times1.1767=1.4709,\\
-\operatorname{clip}(1.25,0.8,1.2)\hat A_1
+\mathrm{clip}(1.25,0.8,1.2)\hat A_1
 &=1.2\times1.1767=1.4120.
 \end{aligned}
 ```
@@ -610,17 +610,17 @@ r\hat A_1&=1.25\times1.1767=1.4709,\\
 
 ### 7.2 负优势时
 
-沿用 $\hat A_4=-1.1767$，假设 $r=0.75$：
+沿用 $`\hat A_4=-1.1767`$，假设 $`r=0.75`$：
 
 ```math
 \begin{aligned}
 r\hat A_4&=0.75\times(-1.1767)=-0.8825,\\
-\operatorname{clip}(0.75,0.8,1.2)\hat A_4
+\mathrm{clip}(0.75,0.8,1.2)\hat A_4
 &=0.8\times(-1.1767)=-0.9414.
 \end{aligned}
 ```
 
-注意负数比较大小时，$-0.9414$ 更小：
+注意负数比较大小时，$`-0.9414`$ 更小：
 
 ```math
 \min(-0.8825,-0.9414)=-0.9414.
@@ -661,9 +661,9 @@ KL 限制的是：
 x_{i,t}
 =
 \frac{
-\pi_{\text{ref}}(o_{i,t}\mid q,o_{i,<t})
+\pi_{\text{ref}}(o_{i,t}\mid q,o_{i,\lt t})
 }{
-\pi_\theta(o_{i,t}\mid q,o_{i,<t})
+\pi_\theta(o_{i,t}\mid q,o_{i,\lt t})
 }.
 ```
 
@@ -674,7 +674,7 @@ x_{i,t}
 =x_{i,t}-\log x_{i,t}-1.
 ```
 
-因为对任意 $x>0$ 都有 $x-\log x-1\ge0$，当 $x=1$ 时等于 0。
+因为对任意 $`x>0`$ 都有 $`x-\log x-1\ge0`$，当 $`x=1`$ 时等于 0。
 
 ### 8.3 数值例子
 
@@ -699,7 +699,7 @@ x=\frac{0.18}{0.25}=0.72.
 \approx0.0485.
 ```
 
-若 KL 系数 $\beta=0.04$：
+若 KL 系数 $`\beta=0.04`$：
 
 ```math
 \beta\widehat D_{\text{KL}}
@@ -710,24 +710,24 @@ x=\frac{0.18}{0.25}=0.72.
 它会从要最大化的策略目标中扣掉。
 
 > [!note] 为什么不是简单写成 `log πθ - log πref`
-> 单个采样 token 上，`log πθ - log πref` 可能为负；它只有在对正确分布取期望后才对应 KL。上面的 $x-\log x-1$ 是常见的低方差、逐样本非负估计形式。
+> 单个采样 token 上，`log πθ - log πref` 可能为负；它只有在对正确分布取期望后才对应 KL。上面的 $`x-\log x-1`$ 是常见的低方差、逐样本非负估计形式。
 
 ---
 
 ## 9. 把所有部分合起来：GRPO 完整目标
 
-对每个问题 $q$ 采样 $G$ 个回答 $o_1,\ldots,o_G$。一种常见的原始 GRPO 最大化目标可写成：
+对每个问题 $`q`$ 采样 $`G`$ 个回答 $`o_1,\ldots,o_G`$。一种常见的原始 GRPO 最大化目标可写成：
 
 ```math
 \begin{aligned}
 J_{\text{GRPO}}(\theta)
 =\mathbb E\Bigg[
 \frac{1}{G}\sum_{i=1}^{G}
-\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}
+\frac{1}{\lvert o_i\rvert}\sum_{t=1}^{\lvert o_i\rvert}
 \Big(
 &\min(
 r_{i,t}(\theta)\hat A_i,\;
-\operatorname{clip}(r_{i,t}(\theta),1-\epsilon,1+\epsilon)\hat A_i
+\mathrm{clip}(r_{i,t}(\theta),1-\epsilon,1+\epsilon)\hat A_i
 )\\
 &-\beta\widehat D_{\text{KL},i,t}
 \Big)
@@ -739,13 +739,13 @@ r_{i,t}(\theta)\hat A_i,\;
 
 | 符号 | 人话 |
 |---|---|
-| $\frac1G\sum_i$ | 对同题的 $G$ 个回答取平均 |
-| $\frac1{|o_i|}\sum_t$ | 对回答中的 token 聚合 |
-| $r_{i,t}$ | 当前策略相对采样旧策略改变了多少 |
-| $\hat A_i$ | 这个回答相对同题其他回答好多少 |
-| $\operatorname{clip}$ | 不让新旧策略一步偏离过大 |
-| $\widehat D_{\text{KL}}$ | 当前策略相对参考模型偏离多少 |
-| $\beta$ | 对偏离参考模型的惩罚强度 |
+| $`\frac1G\sum_i`$ | 对同题的 $`G`$ 个回答取平均 |
+| $`\frac1{\lvert o_i\rvert}\sum_t`$ | 对回答中的 token 聚合 |
+| $`r_{i,t}`$ | 当前策略相对采样旧策略改变了多少 |
+| $`\hat A_i`$ | 这个回答相对同题其他回答好多少 |
+| $`\mathrm{clip}`$ | 不让新旧策略一步偏离过大 |
+| $`\widehat D_{\text{KL}}`$ | 当前策略相对参考模型偏离多少 |
+| $`\beta`$ | 对偏离参考模型的惩罚强度 |
 
 优化器通常做**梯度下降**，所以代码中的 loss 是最大化目标的相反数：
 
@@ -755,7 +755,7 @@ r_{i,t}(\theta)\hat A_i,\;
 
 ### 9.1 延续数值例子算一个 token 的 loss
 
-对回答 $o_1$ 的某个 token，已知：
+对回答 $`o_1`$ 的某个 token，已知：
 
 ```text
 优势 Â₁：          1.1767
@@ -877,7 +877,7 @@ V_\phi(s_t)\approx
 
 ### 11.2 GRPO 的替代
 
-GRPO 不预测 $V(s_t)$，而是直接用同题组均值：
+GRPO 不预测 $`V(s_t)`$，而是直接用同题组均值：
 
 ```math
 b(q)=\frac1G\sum_iR_i.
@@ -888,7 +888,7 @@ b(q)=\frac1G\sum_iR_i.
 ```math
 \hat A_i
 \approx
-\frac{R_i-b(q)}{\operatorname{std}(\mathbf R)}.
+\frac{R_i-b(q)}{\mathrm{std}(\mathbf R)}.
 ```
 
 可以把它理解为：
@@ -915,14 +915,14 @@ GRPO 训练时仍可能需要：
 
 | 概念 | 回答的问题 | GRPO 中的典型形式 |
 |---|---|---|
-| Reward $R_i$ | 这个完整回答得多少分？ | 规则/RM/多奖励加权后的标量 |
-| Return $G_t$ | 从时刻 $t$ 往后的累计奖励是多少？ | outcome-only 且 $\gamma=1$ 时可与最终序列奖励紧密对应 |
-| Baseline $b$ | 拿什么标准比较？ | 同题 $G$ 个回答的平均奖励 |
-| Advantage $\hat A_i$ | 这个回答比基准好多少？ | $(R_i-\mu_R)/(\sigma_R+\varepsilon)$ |
-| Ratio $r_{i,t}$ | 当前策略把该 token 概率改了多少？ | $\pi_\theta/\pi_{\text{old}}$ |
-| KL | 当前模型偏离参考模型多少？ | $\pi_{\text{ref}}/\pi_\theta-\log(\pi_{\text{ref}}/\pi_\theta)-1$ |
-| Objective $J$ | 想最大化什么？ | clip surrogate 减 KL penalty |
-| Loss $\mathcal L$ | 反向传播最小化什么？ | $-J$ |
+| Reward $`R_i`$ | 这个完整回答得多少分？ | 规则/RM/多奖励加权后的标量 |
+| Return $`G_t`$ | 从时刻 $`t`$ 往后的累计奖励是多少？ | outcome-only 且 $`\gamma=1`$ 时可与最终序列奖励紧密对应 |
+| Baseline $`b`$ | 拿什么标准比较？ | 同题 $`G`$ 个回答的平均奖励 |
+| Advantage $`\hat A_i`$ | 这个回答比基准好多少？ | $`(R_i-\mu_R)/(\sigma_R+\varepsilon)`$ |
+| Ratio $`r_{i,t}`$ | 当前策略把该 token 概率改了多少？ | $`\pi_\theta/\pi_{\text{old}}`$ |
+| KL | 当前模型偏离参考模型多少？ | $`\pi_{\text{ref}}/\pi_\theta-\log(\pi_{\text{ref}}/\pi_\theta)-1`$ |
+| Objective $`J`$ | 想最大化什么？ | clip surrogate 减 KL penalty |
+| Loss $`\mathcal L`$ | 反向传播最小化什么？ | $`-J`$ |
 
 > [!important] 最短记忆链
 > **奖励负责评价，优势负责比较，ratio 负责校正，clip 负责限步，KL 负责拴绳，loss 负责反传。**
@@ -933,7 +933,7 @@ GRPO 训练时仍可能需要：
 
 | 维度 | PPO | GRPO |
 |---|---|---|
-| Baseline 来源 | Critic 的 $V(s_t)$ | 同题一组回答的奖励统计 |
+| Baseline 来源 | Critic 的 $`V(s_t)`$ | 同题一组回答的奖励统计 |
 | Advantage | 常用 GAE，通常是 token-level | 常见 outcome 版是 sequence-level，再广播到 token |
 | 是否训练 Critic | 是 | 否 |
 | 同题采样多个回答 | 非核心要求 | 核心要求 |
@@ -978,7 +978,7 @@ GRPO 不是“任何场景都比 PPO 好”。它特别适合：
 \frac{\sum_t m_{i,t}\ell_{i,t}}{\sum_t m_{i,t}},
 ```
 
-其中真实 token 的 mask $m_{i,t}=1$，padding 为 0。
+其中真实 token 的 mask $`m_{i,t}=1`$，padding 为 0。
 
 Prompt token 通常也不进入 completion policy loss。
 
@@ -992,15 +992,15 @@ Prompt token 通常也不进入 completion policy loss。
 
 一些实现会 mask 掉截断回答，或单独设计超长惩罚。
 
-### 14.4 组大小 $G$ 的权衡
+### 14.4 组大小 $`G`$ 的权衡
 
-$G$ 越大：
+$`G`$ 越大：
 
 - 组均值和标准差估计通常更稳定；
 - 更可能同时采到好答案和坏答案；
 - 但 rollout 生成成本和显存/吞吐压力更高。
 
-$G$ 太小则相对排名噪声大，二元奖励也更容易全同。
+$`G`$ 太小则相对排名噪声大，二元奖励也更容易全同。
 
 ### 14.5 温度会影响训练信号
 
@@ -1041,7 +1041,7 @@ R=w_1R^{\text{acc}}+w_2R^{\text{fmt}}+w_3R^{\text{style}},
 
 ### 14.8 长度归一化不是无关紧要的代码细节
 
-原始形式常对每个回答先除以 $|o_i|$。后续工作指出，这可能引入长度偏置。现代实现可能提供：
+原始形式常对每个回答先除以 $`\lvert o_i\rvert`$。后续工作指出，这可能引入长度偏置。现代实现可能提供：
 
 - **GRPO**：每个序列按自身长度归一化；
 - **BNPO/DAPO 风格**：按 batch 中有效 token 总数归一化；
@@ -1075,7 +1075,7 @@ R=w_1R^{\text{acc}}+w_2R^{\text{fmt}}+w_3R^{\text{style}},
 
 ### 误解 6：省掉 Critic 就一定更省总计算
 
-不一定。GRPO 要为同一 prompt 生成 $G$ 个回答，rollout 成本可能非常高。它省的是 Critic 相关成本，而不是让生成免费。
+不一定。GRPO 要为同一 prompt 生成 $`G`$ 个回答，rollout 成本可能非常高。它省的是 Critic 相关成本，而不是让生成免费。
 
 ### 误解 7：奖励越复杂越好
 
@@ -1087,13 +1087,13 @@ R=w_1R^{\text{acc}}+w_2R^{\text{fmt}}+w_3R^{\text{style}},
 
 ### 16.1 30 秒版
 
-> GRPO 是 DeepSeekMath 提出的一种 PPO 变体。它对同一个 prompt 采样一组回答，分别计算奖励，再用组内奖励的均值和标准差构造相对优势，例如 $\hat A_i=(R_i-\mu)/(\sigma+\varepsilon)$。这样就不需要 PPO 中单独的 Critic 和 GAE。策略更新仍保留 old-policy probability ratio、PPO clip 和相对 reference model 的 KL 惩罚。直觉上，高于同题组平均的回答被提高概率，低于平均的回答被降低概率。
+> GRPO 是 DeepSeekMath 提出的一种 PPO 变体。它对同一个 prompt 采样一组回答，分别计算奖励，再用组内奖励的均值和标准差构造相对优势，例如 $`\hat A_i=(R_i-\mu)/(\sigma+\varepsilon)`$。这样就不需要 PPO 中单独的 Critic 和 GAE。策略更新仍保留 old-policy probability ratio、PPO clip 和相对 reference model 的 KL 惩罚。直觉上，高于同题组平均的回答被提高概率，低于平均的回答被降低概率。
 
 ### 16.2 2 分钟版
 
-> GRPO 的完整流程是：先采一批 prompt，每个 prompt 用旧策略生成 $G$ 个回答；通过规则或奖励模型给每个完整回答一个 reward；只在同一 prompt 的组内计算平均奖励和标准差，得到标准化 advantage。常见 outcome-level 实现会让一个回答的所有 completion token 共享同一个 sequence advantage。
+> GRPO 的完整流程是：先采一批 prompt，每个 prompt 用旧策略生成 $`G`$ 个回答；通过规则或奖励模型给每个完整回答一个 reward；只在同一 prompt 的组内计算平均奖励和标准差，得到标准化 advantage。常见 outcome-level 实现会让一个回答的所有 completion token 共享同一个 sequence advantage。
 >
-> 更新时，对每个已生成 token 计算当前策略和采样旧策略的概率比 $r=\pi_\theta/\pi_{\text{old}}$，然后使用 $\min(rA,\operatorname{clip}(r,1-\epsilon,1+\epsilon)A)$ 防止一步更新过大。同时计算当前策略相对冻结 reference policy 的 KL，加上系数 $\beta$ 作为惩罚。
+> 更新时，对每个已生成 token 计算当前策略和采样旧策略的概率比 $`r=\pi_\theta/\pi_{\text{old}}`$，然后使用 $`\min(rA,\mathrm{clip}(r,1-\epsilon,1+\epsilon)A)`$ 防止一步更新过大。同时计算当前策略相对冻结 reference policy 的 KL，加上系数 $`\beta`$ 作为惩罚。
 >
 > 它相对 PPO 的最大变化，是用组内相对奖励代替 Critic 的 value baseline，因此省去了 value model、value loss 和 GAE；代价是同题必须多次采样，而且序列级 advantage 的 credit assignment 更粗。
 
@@ -1125,7 +1125,7 @@ R=w_1R^{\text{acc}}+w_2R^{\text{fmt}}+w_3R^{\text{style}},
 
 取决于实现中的 update iterations。更新多次可提高样本利用率，但当前策略会逐渐远离采样旧策略，所以更依赖 ratio、clip 和 off-policy 稳定性控制。
 
-### Q6：如果 $\beta=0$ 会怎样？
+### Q6：如果 $`\beta=0`$ 会怎样？
 
 不再对 reference KL 施加惩罚，有时可节省 reference model 的计算与显存，但长时间训练更容易发生策略漂移、语言质量下降或 reward hacking。
 
@@ -1152,10 +1152,10 @@ R=w_1R^{\text{acc}}+w_2R^{\text{fmt}}+w_3R^{\text{style}},
 - [ ] 能解释 GRPO 全称中的 Group 和 Relative 分别指什么
 - [ ] 能区分 policy、old policy、reference policy
 - [ ] 能区分 reward、baseline、advantage、ratio、KL 和 loss
-- [ ] 能写出组内优势 $\hat A_i=(R_i-\mu)/(\sigma+\varepsilon)$
+- [ ] 能写出组内优势 $`\hat A_i=(R_i-\mu)/(\sigma+\varepsilon)`$
 - [ ] 能用一组数字手算均值、标准差和优势
 - [ ] 能解释为什么序列级 advantage 会广播给该回答的 token
-- [ ] 能写出 ratio $\pi_\theta/\pi_{\text{old}}$
+- [ ] 能写出 ratio $`\pi_\theta/\pi_{\text{old}}`$
 - [ ] 能分别解释正优势和负优势下 clip 的作用
 - [ ] 能解释 KL 为什么比较 current 与 reference
 - [ ] 能说明 GRPO 为什么不需要 Critic，以及它省了什么
