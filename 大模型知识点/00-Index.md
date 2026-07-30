@@ -1,7 +1,7 @@
 ---
 tags: [面试, 大模型, 索引]
 created: 2026-05-09
-updated: 2026-07-13
+updated: 2026-07-28
 ---
 
 # 大模型岗位面试准备 · 索引
@@ -54,6 +54,7 @@ updated: 2026-07-13
 - **[[07-策略梯度-Policy-Gradient-基础]]** —— 策略梯度从零入门：MDP 框架、策略梯度定理推导、REINFORCE、Baseline 与 Advantage、Actor-Critic、GAE、到 PPO 的演化路线；全程附具体例子，适合 RL 零基础。
 - **[[08-PPO-DPO-GRPO-DAPO-GSPO演进对比]]** —— RLHF 算法演进主线：PPO 经典 → DPO 砍掉 RL → GRPO 砍掉 Critic（DeepSeek-R1） → DAPO 工程改进（字节 Seed） → GSPO sequence-level ratio（Qwen3）；对照表 + 每种算法的核心痛点与修复。
 - **[[09-PPO损失函数详解]]** —— PPO 损失四部分（clip / value / entropy / KL）；ratio、advantage、returns、GAE 是什么；大模型 RLHF 里怎么算（稀疏 reward + token-level KL）；Critic MSE；伪代码完整训练循环。
+- **[[10-GRPO从零到损失函数]]** —— GRPO 完全零基础讲解：同题采样多个回答；规则/RM/多奖励加权；组均值、标准差与 advantage 手算；逐 token ratio、clip、KL 和最终 loss；零方差、奖励投机与长度偏置。
 
 ---
 
